@@ -1,0 +1,30 @@
+{
+  "session_info": {
+    "start_time": "2025-11-01T20:57:17.883307",
+    "duration_minutes": 1,
+    "total_students": 4,
+    "present_count": 4
+  },
+  "attendance_records": {
+    "STU001": {
+      "name": "John Doe",
+      "time": "2025-11-01T20:57:17.909310",
+      "confidence": 0.9
+    },
+    "STU002": {
+      "name": "Jane Smith",
+      "time": "2025-11-01T20:57:17.909340",
+      "confidence": 0.9
+    },
+    "STU003": {
+      "name": "Bob Johnson",
+      "time": "2025-11-01T20:57:17.909382",
+      "confidence": 0.9
+    },
+    "STU004": {
+      "name": "Alice Brown",
+      "time": "2025-11-01T20:57:17.909387",
+      "confidence": 0.9
+    }
+  }
+}

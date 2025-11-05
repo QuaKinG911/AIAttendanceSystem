@@ -1,0 +1,26 @@
+{
+  "STU001": {
+    "name": "John Doe",
+    "filename": "STU001_John_Doe.jpg",
+    "created_at": "2025-11-01T20:00:00.000000",
+    "dataset_version": "1.0"
+  },
+  "STU002": {
+    "name": "Jane Smith", 
+    "filename": "STU002_Jane_Smith.jpg",
+    "created_at": "2025-11-01T20:00:00.000000",
+    "dataset_version": "1.0"
+  },
+  "STU003": {
+    "name": "Bob Johnson",
+    "filename": "STU003_Bob_Johnson.jpg", 
+    "created_at": "2025-11-01T20:00:00.000000",
+    "dataset_version": "1.0"
+  },
+  "STU004": {
+    "name": "Alice Brown",
+    "filename": "STU004_Alice_Brown.jpg",
+    "created_at": "2025-11-01T20:00:00.000000",
+    "dataset_version": "1.0"
+  }
+}

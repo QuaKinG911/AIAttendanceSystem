@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  attendance-system:
+    build: .
+    container_name: ai-attendance-system
+    ports:
+      - "8501:8501"  # Streamlit port
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+      - /dev/video0:/dev/video0  # Camera device (adjust as needed)
+    environment:
+      - ATTENDANCE_CAMERA_SOURCE=0
+      - ATTENDANCE_LOG_LEVEL=INFO
+      - ATTENDANCE_DATABASE_URL=sqlite:///data/attendance.db
+    devices:
+      - /dev/video0:/dev/video0  # Camera access
+    restart: unless-stopped
+    command: streamlit run ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+
+  # Optional: Database service (if using PostgreSQL instead of SQLite)
+  # database:
+  #   image: postgres:13
+  #   environment:
+  #     POSTGRES_DB: attendance
+  #     POSTGRES_USER: attendance_user
+  #     POSTGRES_PASSWORD: secure_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  postgres_data:

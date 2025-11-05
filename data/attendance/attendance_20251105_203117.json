@@ -1,0 +1,20 @@
+{
+  "someone": {
+    "name": "123",
+    "time": "2025-11-05T20:30:22.134813",
+    "confidence": 0.5266844967996356,
+    "liveness_score": 0.4
+  },
+  "MH25060": {
+    "name": "Hafid",
+    "time": "2025-11-05T20:30:22.935737",
+    "confidence": 0.5640024554807108,
+    "liveness_score": 0.4
+  },
+  "STU003": {
+    "name": "User",
+    "time": "2025-11-05T20:30:25.206803",
+    "confidence": 0.6077975559979403,
+    "liveness_score": 0.4
+  }
+}

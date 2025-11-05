@@ -1,0 +1,14 @@
+{
+  "STU003": {
+    "name": "User",
+    "time": "2025-11-05T20:05:46.023667",
+    "confidence": 0.6590420416744187,
+    "liveness_score": 0.4
+  },
+  "someone": {
+    "name": "123",
+    "time": "2025-11-05T20:05:58.203969",
+    "confidence": 0.6571724541157462,
+    "liveness_score": 0.4
+  }
+}

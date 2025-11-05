@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+.venv311/
+env/
+venv/
+
+# Logs
+*.log
+attendance_system.log
+
+# Data (large files)
+data/face_encodings/face_database.pkl
+data/students/dataset_report_*.txt
+
+# Models (large files)
+models/*.pt
+models/*.onnx
+
+# OS
+.DS_Store
+Thumbs.db

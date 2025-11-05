@@ -1,0 +1,42 @@
+{
+  "camera": {
+    "source": 0,
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    },
+    "fps": 30
+  },
+  "attendance": {
+    "duration_minutes": 5,
+    "confidence_threshold": 0.7,
+    "liveness_threshold": 0.6
+  },
+  "detection": {
+    "model": "yolo",
+    "confidence_threshold": 0.5,
+    "fallback_to_haar": true
+  },
+  "recognition": {
+    "model": "facenet",
+    "tolerance": 0.6,
+    "database_path": "data/face_encodings/face_database.pkl"
+  },
+  "liveness": {
+    "enabled": true,
+    "method": "mediapipe",
+    "threshold": 0.6
+  },
+  "database": {
+    "url": "sqlite:///data/attendance.db"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/attendance_system.log"
+  },
+  "performance": {
+    "max_fps": 30,
+    "batch_size": 1,
+    "use_gpu": "auto"
+  }
+}

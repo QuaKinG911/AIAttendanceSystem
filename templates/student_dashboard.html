@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - AI Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-calendar-alt"></i> My Classes Today</h5>
+            </div>
+            <div class="card-body">
+                <div id="classes-today">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Attendance Summary</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Recent Attendance</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-attendance">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load classes and attendance data
+    loadDashboardData();
+
+    // Refresh every 30 seconds
+    setInterval(loadDashboardData, 30000);
+});
+
+function loadDashboardData() {
+    // Load today's classes
+    fetch('/api/classes')
+        .then(response => response.json())
+        .then(data => {
+            displayClasses(data);
+        });
+
+    // Load attendance summary
+    fetch('/api/analytics/dashboard')
+        .then(response => response.json())
+        .then(data => {
+            updateAttendanceChart(data);
+        });
+
+    // Load recent attendance
+    fetch('/api/attendance/recent')
+        .then(response => response.json())
+        .then(data => {
+            displayRecentAttendance(data);
+        });
+}
+
+function displayClasses(classes) {
+    const container = document.getElementById('classes-today');
+    if (classes.length === 0) {
+        container.innerHTML = '<p class="text-muted">No classes scheduled for today.</p>';
+        return;
+    }
+
+    let html = '<div class="list-group">';
+    classes.forEach(cls => {
+        const time = new Date(cls.start_time).toLocaleTimeString();
+        html += `
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${cls.name}</h6>
+                    <small>${time}</small>
+                </div>
+                <p class="mb-1">Room: ${cls.room || 'TBD'}</p>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function updateAttendanceChart(data) {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Late', 'Absent'],
+            datasets: [{
+                data: [
+                    data.attendance_breakdown.present,
+                    data.attendance_breakdown.late,
+                    data.attendance_breakdown.absent
+                ],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function displayRecentAttendance(records) {
+    const container = document.getElementById('recent-attendance');
+    if (records.length === 0) {
+        container.innerHTML = '<p class="text-muted">No recent attendance records.</p>';
+        return;
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>Date</th><th>Class</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+
+    records.forEach(record => {
+        const statusClass = record.status === 'present' ? 'success' :
+                           record.status === 'late' ? 'warning' : 'danger';
+        html += `
+            <tr>
+                <td>${record.date}</td>
+                <td>${record.class_name}</td>
+                <td><span class="badge bg-${statusClass}">${record.status}</span></td>
+                <td>${record.time || 'N/A'}</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - AI Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> System Analytics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Attendance Trends (Last 30 Days)</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="trendsChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Class Performance</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="performanceChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>System Alerts</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="system-alerts">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Export Options</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100 mb-2" onclick="exportAttendanceData()">
+                                    <i class="fas fa-download"></i> Export All Attendance Data
+                                </button>
+                                <button class="btn btn-success w-100 mb-2" onclick="exportUserReport()">
+                                    <i class="fas fa-users"></i> Export User Report
+                                </button>
+                                <button class="btn btn-info w-100" onclick="exportClassReport()">
+                                    <i class="fas fa-graduation-cap"></i> Export Class Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadAnalytics() {
+    try {
+        // Load trends data
+        const trendsResponse = await fetch('/api/analytics/trends');
+        const trendsData = await trendsResponse.json();
+
+        // Load anomalies
+        const anomaliesResponse = await fetch('/api/analytics/anomalies');
+        const anomaliesData = await anomaliesResponse.json();
+
+        displayTrends(trendsData);
+        displayAnomalies(anomaliesData);
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+}
+
+function displayTrends(data) {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: data.map(d => d.rate),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function displayAnomalies(anomalies) {
+    const alertsDiv = document.getElementById('system-alerts');
+
+    if (anomalies.length === 0) {
+        alertsDiv.innerHTML = '<div class="alert alert-success">No system alerts at this time.</div>';
+        return;
+    }
+
+    let html = '';
+    anomalies.forEach(anomaly => {
+        const alertClass = anomaly.type === 'low_attendance' ? 'alert-warning' : 'alert-info';
+        html += `
+            <div class="alert ${alertClass}">
+                <strong>${anomaly.type.replace('_', ' ').toUpperCase()}:</strong> ${anomaly.message}
+            </div>
+        `;
+    });
+
+    alertsDiv.innerHTML = html;
+}
+
+async function exportAttendanceData() {
+    try {
+        const response = await fetch('/api/analytics/export');
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'attendance_export.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            alert('Error exporting data');
+        }
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        alert('Error exporting data');
+    }
+}
+
+function exportUserReport() {
+    // This would typically call an API endpoint to generate a user report
+    alert('User report export functionality would be implemented here');
+}
+
+function exportClassReport() {
+    // This would typically call an API endpoint to generate a class report
+    alert('Class report export functionality would be implemented here');
+}
+
+// Load analytics on page load
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+</script>
+{% endblock %}

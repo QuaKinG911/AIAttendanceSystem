@@ -41,16 +41,22 @@ except ImportError as e:
     sys.exit(1)
 
 class SimpleAttendanceSystem:
-    def __init__(self, camera_source=None):
+    def __init__(self, camera_source=None, class_id=None, session_id=None):
         # Use config values with fallbacks
         self.camera_source = camera_source if camera_source is not None else config.get('camera.source', 0)
         self.cap = None
         self.is_running = False
+        self.class_id = class_id
+        self.session_id = session_id
 
         # Load configuration
         self.attendance_duration = config.get('attendance.duration_minutes', 5)
         self.confidence_threshold = config.get('attendance.confidence_threshold', 0.7)
         self.liveness_threshold = config.get('attendance.liveness_threshold', 0.6)
+
+        # Late attendance windows
+        self.present_window_minutes = config.get('attendance.present_window_minutes', 5)
+        self.late_window_minutes = config.get('attendance.late_window_minutes', 15)
 
         # Initialize components with fallbacks
         try:
@@ -100,10 +106,25 @@ class SimpleAttendanceSystem:
         """Initialize camera"""
         try:
             logging.info(f"Initializing camera {self.camera_source}")
+
+            # Try different backends if default fails
+            backends = [cv2.CAP_ANY, cv2.CAP_V4L2]
             self.cap = cv2.VideoCapture(self.camera_source)
 
             if not self.cap.isOpened():
-                logging.error(f"Failed to open camera {self.camera_source}")
+                logging.warning("Default backend failed, trying alternative backends")
+                for backend in backends:
+                    try:
+                        self.cap = cv2.VideoCapture(self.camera_source, backend)
+                        if self.cap.isOpened():
+                            logging.info(f"Camera opened successfully with backend {backend}")
+                            break
+                    except Exception as e:
+                        logging.warning(f"Failed to open camera with backend {backend}: {e}")
+                        continue
+
+            if not self.cap.isOpened():
+                logging.error(f"Failed to open camera {self.camera_source} with any backend")
                 return False
 
             # Set camera properties
@@ -118,7 +139,19 @@ class SimpleAttendanceSystem:
 
             logging.info(f"Camera initialized successfully")
             logging.info(f"Camera properties - Width: {actual_width}, Height: {actual_height}, FPS: {actual_fps}")
-            logging.debug(f"Camera backend: {self.cap.getBackendName()}")
+            try:
+                logging.debug(f"Camera backend: {self.cap.getBackendName()}")
+            except:
+                logging.debug("Camera backend: Unknown")
+
+            # Test reading a frame to ensure camera works
+            test_ret, test_frame = self.cap.read()
+            if not test_ret or test_frame is None:
+                logging.error("Camera opened but failed to read test frame")
+                self.cap.release()
+                return False
+
+            logging.info("Camera test frame read successfully")
 
             # Enforce minimum FPS
             if actual_fps < 25:
@@ -187,15 +220,28 @@ class SimpleAttendanceSystem:
                             student_name = name
                             recognition_confidence = conf
 
+                            # Determine attendance status based on time
+                            if self.session_start:
+                                elapsed = datetime.now() - self.session_start
+                                if elapsed <= timedelta(minutes=self.present_window_minutes):
+                                    status = 'present'
+                                elif elapsed <= timedelta(minutes=self.late_window_minutes):
+                                    status = 'late'
+                                else:
+                                    status = 'absent'
+                            else:
+                                status = 'present'  # Default if no session start time
+
                             # Mark attendance
                             if student_id not in self.attendance_records:
                                 self.attendance_records[student_id] = {
                                     'name': name,
                                     'time': datetime.now(),
                                     'confidence': conf,
-                                    'liveness_score': liveness_score
+                                    'liveness_score': liveness_score,
+                                    'status': status
                                 }
-                                logging.info(f"Attendance marked for {name} (ID: {student_id}) with confidence {conf:.3f}")
+                                logging.info(f"Attendance marked for {name} (ID: {student_id}) as {status} with confidence {conf:.3f}")
                             else:
                                 logging.debug(f"Attendance already marked for {name} (ID: {student_id})")
                         else:
@@ -325,7 +371,8 @@ class SimpleAttendanceSystem:
                     'name': record['name'],
                     'time': record['time'].isoformat(),
                     'confidence': record['confidence'],
-                    'liveness_score': record['liveness_score']
+                    'liveness_score': record['liveness_score'],
+                    'status': record['status']
                 }
             
             with open(filename, 'w') as f:

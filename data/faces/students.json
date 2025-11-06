@@ -7,5 +7,14 @@
   },
   "STU003": {
     "name": "User"
+  },
+  "STU001": {
+    "name": "John Doe"
+  },
+  "STU002": {
+    "name": "Jane Smith"
+  },
+  "TEST001": {
+    "name": "Test User"
   }
 }

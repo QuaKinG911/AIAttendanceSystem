@@ -44,11 +44,11 @@ mkdir -p data/{students,attendance,uncertain_matches}
 mkdir -p models
 mkdir -p logs
 
-# Download Haar Cascade if not present
-echo "Downloading Haar Cascade model..."
-if [ ! -f "models/haarcascade_frontalface_default.xml" ]; then
-    wget -O models/haarcascade_frontalface_default.xml \
-        https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
+# Download YOLOv8 face model if not present
+echo "Downloading YOLOv8 face model..."
+if [ ! -f "models/yolov8x-face-lindevs.pt" ]; then
+    wget -O models/yolov8x-face-lindevs.pt \
+        https://github.com/lindevs/yolov8-face/releases/download/v0.0.0/yolov8x-face-lindevs.pt
 fi
 
 # Create config file
@@ -70,8 +70,7 @@ cat > config/config.json << EOF
     },
     "detection": {
         "model": "yolo",
-        "confidence_threshold": 0.5,
-        "fallback_to_haar": true
+        "confidence_threshold": 0.5
     },
     "recognition": {
         "model": "facenet",
@@ -109,7 +108,7 @@ source venv/bin/activate
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
 # Run the system
-python main.py
+python app.py
 EOF
 
 chmod +x start.sh

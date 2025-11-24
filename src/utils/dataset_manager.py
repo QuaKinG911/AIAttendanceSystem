@@ -106,3 +106,22 @@ def list_students() -> List[Tuple[str, str]]:
     return sorted([(sid, meta.get('name', '')) for sid, meta in students.items()], key=lambda x: x[0])
 
 
+def save_student_photo(student_id: str, image_bytes: bytes, image_ext: str = '.jpg') -> Tuple[bool, str]:
+    """Save a photo for an existing student.
+
+    Returns (ok, path_or_error)
+    """
+    ensure_dataset_dirs()
+    if not student_id:
+        return False, 'Student ID is required'
+
+    sdir = get_student_dir(student_id)
+    os.makedirs(sdir, exist_ok=True)
+    img_path = os.path.join(sdir, f'{student_id}{image_ext}')
+    try:
+        with open(img_path, 'wb') as f:
+            f.write(image_bytes)
+        return True, img_path
+    except Exception as e:
+        return False, f'Failed to save image: {e}'
+

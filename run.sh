@@ -11,12 +11,12 @@ source .venv311/bin/activate
 if [ "$1" = "streamlit" ]; then
     echo "Starting Streamlit UI..."
     streamlit run ui/streamlit_app.py
-elif [ "$1" = "cli" ]; then
-    echo "Starting CLI system..."
-    python main.py
+elif [ "$1" = "web" ]; then
+    echo "Starting Flask web application..."
+    python app.py
 else
-    echo "Usage: $0 [streamlit|cli]"
+    echo "Usage: $0 [streamlit|web]"
     echo "  streamlit - Run Streamlit web interface"
-    echo "  cli - Run command-line interface"
+    echo "  web - Run Flask web application"
     exit 1
 fi

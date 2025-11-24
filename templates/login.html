@@ -3,32 +3,103 @@
 {% block title %}Login - AI Attendance System{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title text-center"><i class="fas fa-sign-in-alt"></i> Login</h3>
-            </div>
-            <div class="card-body">
-                {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color));">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-8 col-lg-6 col-xl-4">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <!-- Academic Header -->
+                    <div class="text-center mb-4">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-graduation-cap fa-2x"></i>
+                        </div>
+                        <h2 class="fw-bold text-primary mb-2">AI Attendance System</h2>
+                        <p class="text-muted mb-4">Academic Institution Portal</p>
+                    </div>
 
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                    {% if error %}
+                    <div class="alert alert-danger border-0 shadow-sm">
+                        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
                     </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    {% endif %}
+
+                    <form method="POST" class="user">
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control form-control-lg" id="email" name="username" placeholder="name@example.com" required>
+                            <label for="email"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                        </div>
+                        <div class="form-floating mb-4">
+                            <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Password" required>
+                            <label for="password"><i class="fas fa-lock me-2"></i>Password</label>
+                        </div>
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Footer Info -->
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Secure Academic Portal | Powered by AI Technology
+                        </small>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </div>
+
+            <!-- Demo Credentials Card -->
+            <div class="card mt-3 border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <h6 class="card-title text-center mb-2">
+                        <i class="fas fa-info-circle text-info me-1"></i>Demo Credentials
+                    </h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <small class="text-muted d-block">Admin</small>
+                            <code class="text-primary">admin@school.edu</code>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Teacher</small>
+                            <code class="text-success">teacher@school.edu</code>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Student</small>
+                            <code class="text-warning">student@school.edu</code>
+                        </div>
                     </div>
-                </form>
+                    <small class="text-muted d-block text-center mt-2">Password: [role]123</small>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.form-floating > .form-control {
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.form-floating > .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.form-floating > label {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] .card {
+    background: rgba(52, 73, 94, 0.95);
+}
+</style>
 {% endblock %}

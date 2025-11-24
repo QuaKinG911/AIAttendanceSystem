@@ -3,66 +3,25 @@
 {% block title %}Admin Dashboard - AI Attendance System{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-primary"><i class="fas fa-users"></i></h5>
-                <h3 id="total-users">-</h3>
-                <p class="card-text">Total Users</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-success"><i class="fas fa-graduation-cap"></i></h5>
-                <h3 id="total-classes">-</h3>
-                <p class="card-text">Total Classes</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-info"><i class="fas fa-calendar-check"></i></h5>
-                <h3 id="total-sessions">-</h3>
-                <p class="card-text">Sessions Today</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-warning"><i class="fas fa-chart-line"></i></h5>
-                <h3 id="attendance-rate">-%</h3>
-                <p class="card-text">Avg Attendance Rate</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-bar"></i> Attendance Trends (Last 30 Days)</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="trendsChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-exclamation-triangle"></i> System Alerts</h5>
-            </div>
-            <div class="card-body">
-                <div id="system-alerts">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
+<!-- Welcome Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color)); color: white;">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 class="mb-1"><i class="fas fa-university me-2"></i>Welcome to Academic Administration</h3>
+                        <p class="mb-0 opacity-75">Manage your institution's attendance system efficiently</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                                <i class="fas fa-cog fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ username }}</h5>
+                                <small class="opacity-75">Administrator</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -71,33 +30,98 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-cogs"></i> Quick Actions</h5>
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-users text-primary fa-2x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-primary mb-1" id="total-users">-</h2>
+                <p class="text-muted mb-0 fw-semibold">Total Users</p>
+                <small class="text-muted">Active accounts in system</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-graduation-cap text-success fa-2x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-success mb-1" id="total-classes">-</h2>
+                <p class="text-muted mb-0 fw-semibold">Total Classes</p>
+                <small class="text-muted">Academic courses offered</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-calendar-check text-info fa-2x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-info mb-1" id="total-sessions">-</h2>
+                <p class="text-muted mb-0 fw-semibold">Sessions Today</p>
+                <small class="text-muted">Active attendance sessions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-chart-line text-warning fa-2x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-warning mb-1" id="attendance-rate">-%</h2>
+                <p class="text-muted mb-0 fw-semibold">Avg Attendance Rate</p>
+                <small class="text-muted">Overall system performance</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Section -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-chart-bar me-2"></i>
+                <div>
+                    <h5 class="mb-0">Attendance Trends</h5>
+                    <small class="text-muted">Last 30 days performance analysis</small>
+                </div>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <button class="btn btn-primary w-100 mb-2" onclick="showCreateUserModal()">
-                            <i class="fas fa-user-plus"></i><br>Add User
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-success w-100 mb-2" onclick="showCreateClassModal()">
-                            <i class="fas fa-plus-circle"></i><br>Add Class
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-info w-100 mb-2" onclick="exportData()">
-                            <i class="fas fa-download"></i><br>Export Data
-                        </button>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-warning w-100 mb-2" onclick="showSystemSettings()">
-                            <i class="fas fa-cog"></i><br>Settings
-                        </button>
+                <canvas id="trendsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <h5 class="mb-0">System Alerts</h5>
+                    <small class="text-muted">Real-time notifications</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="system-alerts">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading alerts...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">Loading system alerts...</p>
                     </div>
                 </div>
             </div>
@@ -105,42 +129,7 @@
     </div>
 </div>
 
-<!-- Create User Modal -->
-<div class="modal fade" id="createUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create New User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="create-user-form">
-                    <div class="mb-3">
-                        <label>Username</label>
-                        <input type="text" class="form-control" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Email</label>
-                        <input type="email" class="form-control" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Password</label>
-                        <input type="password" class="form-control" name="password" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Role</label>
-                        <select class="form-control" name="role" required>
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Create User</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -155,108 +144,110 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadDashboardStats() {
-    fetch('/api/analytics/dashboard')
-        .then(response => response.json())
+    fetch('/api/admin/stats', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+                return {};
+            }
+        })
         .then(data => {
-            document.getElementById('total-users').textContent = data.total_students;
-            document.getElementById('total-classes').textContent = data.total_classes;
-            document.getElementById('total-sessions').textContent = data.total_sessions;
-            document.getElementById('attendance-rate').textContent = data.attendance_rate + '%';
+            if (data) {
+                document.getElementById('total-users').textContent = data.total_users;
+                document.getElementById('total-classes').textContent = data.total_classes;
+                document.getElementById('total-sessions').textContent = data.today_sessions;
+                document.getElementById('attendance-rate').textContent = data.avg_attendance_rate + '%';
+            }
         });
 }
 
 function loadTrendsChart() {
-    fetch('/api/analytics/trends?days=30')
-        .then(response => response.json())
+    fetch('/api/analytics/trends?days=30', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+                return [];
+            }
+        })
         .then(data => {
-            const ctx = document.getElementById('trendsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map(d => d.date),
-                    datasets: [{
-                        label: 'Present',
-                        data: data.map(d => d.present),
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)'
-                    }, {
-                        label: 'Late',
-                        data: data.map(d => d.late),
-                        borderColor: '#ffc107',
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)'
-                    }, {
-                        label: 'Absent',
-                        data: data.map(d => d.absent),
-                        borderColor: '#dc3545',
-                        backgroundColor: 'rgba(220, 53, 69, 0.1)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
+            if (data && data.length > 0) {
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.date),
+                        datasets: [{
+                            label: 'Present',
+                            data: data.map(d => d.present),
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)'
+                        }, {
+                            label: 'Late',
+                            data: data.map(d => d.late),
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)'
+                        }, {
+                            label: 'Absent',
+                            data: data.map(d => d.absent),
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         });
 }
 
 function loadSystemAlerts() {
-    fetch('/api/analytics/anomalies')
-        .then(response => response.json())
+    fetch('/api/analytics/anomalies', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+                return [];
+            }
+        })
         .then(data => {
             const container = document.getElementById('system-alerts');
 
-            if (data.length === 0) {
+            if (data && data.length === 0) {
                 container.innerHTML = '<p class="text-success">No alerts at this time.</p>';
                 return;
             }
 
             let html = '<div class="list-group">';
-            data.forEach(alert => {
-                const alertClass = alert.type === 'low_attendance' ? 'warning' : 'danger';
-                html += `
-                    <div class="list-group-item list-group-item-${alertClass}">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">${alert.type.replace('_', ' ').toUpperCase()}</h6>
-                            <small>Class ${alert.class_id}</small>
+            if (data) {
+                data.forEach(alert => {
+                    const alertClass = alert.type === 'low_attendance' ? 'warning' : 'danger';
+                    html += `
+                        <div class="list-group-item list-group-item-${alertClass}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${alert.type.replace('_', ' ').toUpperCase()}</h6>
+                                <small>Class ${alert.class_id}</small>
+                            </div>
+                            <p class="mb-1">${alert.message}</p>
                         </div>
-                        <p class="mb-1">${alert.message}</p>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
             html += '</div>';
             container.innerHTML = html;
         });
 }
 
-function showCreateUserModal() {
-    // Redirect to users management page
-    window.location.href = '/admin/users';
-}
 
-function showCreateClassModal() {
-    // Redirect to classes management page
-    window.location.href = '/admin/classes';
-}
-
-function exportData() {
-    fetch('/api/analytics/export')
-        .then(response => response.blob())
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'attendance_export.xlsx';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        });
-}
-
-function showSystemSettings() {
-    alert('System settings would be implemented here.');
-}
 </script>
 {% endblock %}

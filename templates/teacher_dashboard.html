@@ -2,6 +2,14 @@
 
 {% block title %}Teacher Dashboard - AI Attendance System{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-6">
@@ -13,9 +21,6 @@
                 <div id="active-sessions">
                     <p class="text-muted">No active sessions.</p>
                 </div>
-                <button class="btn btn-success" onclick="startNewSession()">
-                    <i class="fas fa-plus"></i> Start New Session
-                </button>
             </div>
         </div>
     </div>
@@ -23,10 +28,10 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-users"></i> Class Overview</h5>
+                <h5><i class="fas fa-chart-bar"></i> Class Attendance Analytics</h5>
             </div>
             <div class="card-body">
-                <div id="class-overview">
+                <div id="attendance-analytics">
                     <div class="text-center">
                         <div class="spinner-border" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -38,77 +43,60 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-chart-line"></i> Live Attendance Feed</h5>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="refreshFeed()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="live-feed" class="text-center">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Select a class session to view the live attendance feed.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Manual Attendance Modal -->
-<div class="modal fade" id="manualAttendanceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Manual Attendance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="manual-attendance-content">
-                    <!-- Content loaded dynamically -->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-let currentSessionId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     loadActiveSessions();
-    loadClassOverview();
+    loadAttendanceAnalytics();
 
-    // Refresh every 10 seconds
+    // Refresh active sessions every 30 seconds
     setInterval(() => {
         loadActiveSessions();
-        if (currentSessionId) {
-            loadLiveFeed(currentSessionId);
-        }
-    }, 10000);
+    }, 30000);
 });
 
 function loadActiveSessions() {
-    fetch('/api/attendance/sessions?status=active')
-        .then(response => response.json())
+    fetch('/api/attendance/sessions', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+                return [];
+            }
+        })
         .then(data => {
-            displayActiveSessions(data);
+            if (data) {
+                displayActiveSessions(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sessions:', error);
         });
 }
 
-function loadClassOverview() {
-    fetch('/api/classes')
-        .then(response => response.json())
+function loadAttendanceAnalytics() {
+    fetch('/api/analytics/teacher/classes', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+                return [];
+            }
+        })
         .then(data => {
-            displayClassOverview(data);
+            if (data) {
+                displayAttendanceAnalytics(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading attendance analytics:', error);
+            document.getElementById('attendance-analytics').innerHTML = '<div class="alert alert-danger">Error loading analytics data.</div>';
         });
 }
 
@@ -122,19 +110,18 @@ function displayActiveSessions(sessions) {
 
     let html = '<div class="list-group">';
     sessions.forEach(session => {
+        const startTime = new Date(session.start_time).toLocaleTimeString();
+        const statusBadge = session.status === 'active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">' + session.status + '</span>';
         html += `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
-                    <h6 class="mb-1">Class ${session.class_id}</h6>
-                    <small>Started: ${new Date(session.start_time).toLocaleTimeString()}</small>
+                    <h6 class="mb-1">${session.class_name} ${statusBadge}</h6>
+                    <small>Started: ${startTime} | Recorded: ${session.recorded_count} students</small>
                 </div>
                 <div>
-                    <button class="btn btn-sm btn-primary me-2" onclick="viewLiveFeed(${session.id})">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="endSession(${session.id})">
-                        <i class="fas fa-stop"></i> End
-                    </button>
+                    ${session.status === 'active' ? `<button class="btn btn-sm btn-warning" onclick="endSession(${session.id})">
+                        <i class="fas fa-stop"></i> End Session
+                    </button>` : '<span class="text-muted">Completed</span>'}
                 </div>
             </div>
         `;
@@ -143,31 +130,49 @@ function displayActiveSessions(sessions) {
     container.innerHTML = html;
 }
 
-function displayClassOverview(classes) {
-    const container = document.getElementById('class-overview');
+function displayAttendanceAnalytics(analytics) {
+    const container = document.getElementById('attendance-analytics');
 
-    if (classes.length === 0) {
-        container.innerHTML = '<p class="text-muted">No classes assigned.</p>';
+    if (!analytics || analytics.length === 0) {
+        container.innerHTML = '<p class="text-muted">No attendance data available.</p>';
         return;
     }
 
     let html = '<div class="row">';
-    classes.forEach(cls => {
+    analytics.forEach(cls => {
+        const attendanceRate = cls.average_attendance || 0;
+        const rateColor = attendanceRate >= 80 ? 'success' : attendanceRate >= 60 ? 'warning' : 'danger';
+        const rateIcon = attendanceRate >= 80 ? 'fas fa-check-circle' : attendanceRate >= 60 ? 'fas fa-exclamation-triangle' : 'fas fa-times-circle';
+
         html += `
             <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body">
-                        <h6 class="card-title">${cls.name}</h6>
-                        <p class="card-text">
-                            <small class="text-muted">
-                                ${cls.start_time} - ${cls.end_time}<br>
-                                Room: ${cls.room || 'TBD'}<br>
-                                Present: ${cls.present_window_minutes}min, Late: ${cls.late_window_minutes}min
-                            </small>
-                        </p>
-                        <button class="btn btn-sm btn-success" onclick="startSession(${cls.id})">
-                            <i class="fas fa-play"></i> Start Attendance
-                        </button>
+                        <h6 class="card-title">${cls.class_name}</h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="${rateIcon} text-${rateColor} me-2"></i>
+                            <span class="h4 text-${rateColor}">${attendanceRate.toFixed(1)}%</span>
+                            <small class="text-muted ms-2">Average Attendance</small>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-${rateColor}" role="progressbar"
+                                 style="width: ${attendanceRate}%" aria-valuenow="${attendanceRate}"
+                                 aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="text-success fw-bold">${cls.total_sessions || 0}</div>
+                                <small class="text-muted">Sessions</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-primary fw-bold">${cls.total_students || 0}</div>
+                                <small class="text-muted">Students</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-info fw-bold">${cls.recent_sessions || 0}</div>
+                                <small class="text-muted">Recent</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -177,142 +182,31 @@ function displayClassOverview(classes) {
     container.innerHTML = html;
 }
 
-function startNewSession() {
-    // Show class selection modal
-    const classes = document.querySelectorAll('[onclick^="startSession("]');
-    if (classes.length === 1) {
-        const classId = classes[0].getAttribute('onclick').match(/\d+/)[0];
-        startSession(classId);
-    } else {
-        // Show modal to select class
-        alert('Please select a class from the overview.');
-    }
-}
 
-function startSession(classId) {
-    fetch('/api/attendance/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: classId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            alert('Session started successfully!');
-            loadActiveSessions();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
 
-function viewLiveFeed(sessionId) {
-    currentSessionId = sessionId;
-    loadLiveFeed(sessionId);
-}
 
-function loadLiveFeed(sessionId) {
-    const container = document.getElementById('live-feed');
-
-    fetch(`/api/attendance/sessions/${sessionId}/records`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No attendance records yet.</div>';
-                return;
-            }
-
-            let html = '<div class="table-responsive"><table class="table table-striped">';
-            html += '<thead><tr><th>Student</th><th>Status</th><th>Time</th><th>Confidence</th><th>Actions</th></tr></thead><tbody>';
-
-            data.forEach(record => {
-                const statusClass = record.status === 'present' ? 'success' :
-                                   record.status === 'late' ? 'warning' : 'danger';
-                html += `
-                    <tr>
-                        <td>${record.student_id}</td>
-                        <td><span class="badge bg-${statusClass}">${record.status}</span></td>
-                        <td>${record.detected_at ? new Date(record.detected_at).toLocaleTimeString() : 'N/A'}</td>
-                        <td>${record.confidence_score ? (record.confidence_score * 100).toFixed(1) + '%' : 'N/A'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="editRecord(${record.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += '</tbody></table></div>';
-            container.innerHTML = html;
-        });
-}
 
 function endSession(sessionId) {
-    if (confirm('Are you sure you want to end this session?')) {
-        fetch(`/api/attendance/sessions/${sessionId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'completed' })
-        })
-        .then(response => response.json())
-        .then(data => {
+    if (!confirm('Are you sure you want to end this attendance session?')) return;
+
+    fetch(`/api/attendance/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'completed' })
+    })
+    .then(response => {
+        if (response.ok) {
             alert('Session ended successfully!');
-            loadActiveSessions();
-            document.getElementById('live-feed').innerHTML = '<div class="alert alert-info">Session ended.</div>';
-        });
-    }
-}
-
-function editRecord(recordId) {
-    // Load manual attendance modal
-    fetch(`/api/attendance/records/${recordId}`)
-        .then(response => response.json())
-        .then(data => {
-            const modal = new bootstrap.Modal(document.getElementById('manualAttendanceModal'));
-            const content = document.getElementById('manual-attendance-content');
-
-            content.innerHTML = `
-                <form id="edit-record-form">
-                    <div class="mb-3">
-                        <label>Status</label>
-                        <select class="form-control" name="status">
-                            <option value="present" ${data.status === 'present' ? 'selected' : ''}>Present</option>
-                            <option value="late" ${data.status === 'late' ? 'selected' : ''}>Late</option>
-                            <option value="absent" ${data.status === 'absent' ? 'selected' : ''}>Absent</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Reason (optional)</label>
-                        <textarea class="form-control" name="reason" rows="3">${data.override_reason || ''}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </form>
-            `;
-
-            document.getElementById('edit-record-form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const updateData = {
-                    status: formData.get('status'),
-                    reason: formData.get('reason')
-                };
-
-                fetch(`/api/attendance/records/${recordId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
-                })
-                .then(response => response.json())
-                .then(result => {
-                    modal.hide();
-                    if (currentSessionId) loadLiveFeed(currentSessionId);
-                    alert('Record updated successfully!');
-                });
-            });
-
-            modal.show();
-        });
+            loadActiveSessions(); // Refresh the list
+        } else {
+            return response.json().then(err => { throw new Error(err.error || 'Failed to end session'); });
+        }
+    })
+    .catch(error => {
+        console.error('Error ending session:', error);
+        alert('Error: ' + error.message);
+    });
 }
 </script>
 {% endblock %}

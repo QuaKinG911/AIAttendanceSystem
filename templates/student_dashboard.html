@@ -3,48 +3,90 @@
 {% block title %}Student Dashboard - AI Attendance System{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-calendar-alt"></i> My Classes Today</h5>
-            </div>
-            <div class="card-body">
-                <div id="classes-today">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
+<!-- Welcome Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color)); color: white;">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 class="mb-1"><i class="fas fa-user-graduate me-2"></i>Welcome back, {{ username }}!</h3>
+                        <p class="mb-0 opacity-75">Track your academic attendance and stay on top of your classes</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                                <i class="fas fa-calendar-check fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Student Portal</h5>
+                                <small class="opacity-75">Academic Year 2024</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-pie"></i> Attendance Summary</h5>
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-calendar-alt me-2"></i>
+                <div>
+                    <h5 class="mb-0">Today's Classes</h5>
+                    <small class="text-muted">Your scheduled classes for today</small>
+                </div>
             </div>
             <div class="card-body">
+                <div id="classes-today">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading classes...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">Loading your classes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-chart-pie me-2"></i>
+                <div>
+                    <h5 class="mb-0">Attendance Overview</h5>
+                    <small class="text-muted">Your attendance statistics</small>
+                </div>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
                 <canvas id="attendanceChart" width="200" height="200"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- Recent Attendance -->
+<div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-history"></i> Recent Attendance</h5>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-history me-2"></i>
+                <div>
+                    <h5 class="mb-0">Recent Attendance Records</h5>
+                    <small class="text-muted">Your latest attendance history</small>
+                </div>
             </div>
             <div class="card-body">
                 <div id="recent-attendance">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading attendance records...</span>
                         </div>
+                        <p class="text-muted mt-2 mb-0">Loading your attendance history...</p>
                     </div>
                 </div>
             </div>
@@ -65,44 +107,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadDashboardData() {
     // Load today's classes
-    fetch('/api/classes')
-        .then(response => response.json())
+    fetch('/api/classes', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Failed to load classes');
+            }
+        })
         .then(data => {
             displayClasses(data);
+        })
+        .catch(error => {
+            console.error('Error loading classes:', error);
+            displayClasses([]);
         });
 
     // Load attendance summary
-    fetch('/api/analytics/dashboard')
-        .then(response => response.json())
+    fetch('/api/analytics/dashboard', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Failed to load attendance data');
+            }
+        })
         .then(data => {
             updateAttendanceChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading attendance data:', error);
+            // Show empty chart
+            updateAttendanceChart({
+                attendance_breakdown: { present: 0, late: 0, absent: 0 }
+            });
         });
 
     // Load recent attendance
-    fetch('/api/attendance/recent')
-        .then(response => response.json())
+    fetch('/api/attendance/recent', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Failed to load recent attendance');
+            }
+        })
         .then(data => {
             displayRecentAttendance(data);
+        })
+        .catch(error => {
+            console.error('Error loading recent attendance:', error);
+            displayRecentAttendance([]);
         });
 }
 
 function displayClasses(classes) {
     const container = document.getElementById('classes-today');
-    if (classes.length === 0) {
+    if (!classes || classes.length === 0) {
         container.innerHTML = '<p class="text-muted">No classes scheduled for today.</p>';
         return;
     }
 
     let html = '<div class="list-group">';
     classes.forEach(cls => {
-        const time = new Date(cls.start_time).toLocaleTimeString();
+        // cls.start_time is in HH:MM:SS format, display as HH:MM
+        const time = cls.start_time ? cls.start_time.substring(0, 5) : 'TBD';
         html += `
             <div class="list-group-item">
                 <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">${cls.name}</h6>
+                    <h6 class="mb-1">${cls.name || 'Unknown Course'}</h6>
                     <small>${time}</small>
                 </div>
-                <p class="mb-1">Room: ${cls.room || 'TBD'}</p>
+                <p class="mb-1">Room: ${cls.room || 'TBD'} | Teacher: ${cls.teacher || 'TBD'}</p>
             </div>
         `;
     });
@@ -112,21 +188,32 @@ function displayClasses(classes) {
 
 function updateAttendanceChart(data) {
     const ctx = document.getElementById('attendanceChart').getContext('2d');
-    new Chart(ctx, {
+
+    // Destroy existing chart if it exists and is a valid Chart instance
+    if (window.attendanceChart && typeof window.attendanceChart.destroy === 'function') {
+        window.attendanceChart.destroy();
+    }
+
+    // Ensure we have valid data
+    const attendanceData = data.attendance_breakdown || { present: 0, late: 0, absent: 0 };
+
+    window.attendanceChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Present', 'Late', 'Absent'],
             datasets: [{
                 data: [
-                    data.attendance_breakdown.present,
-                    data.attendance_breakdown.late,
-                    data.attendance_breakdown.absent
+                    attendanceData.present || 0,
+                    attendanceData.late || 0,
+                    attendanceData.absent || 0
                 ],
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom'
@@ -138,7 +225,7 @@ function updateAttendanceChart(data) {
 
 function displayRecentAttendance(records) {
     const container = document.getElementById('recent-attendance');
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
         container.innerHTML = '<p class="text-muted">No recent attendance records.</p>';
         return;
     }
@@ -148,12 +235,12 @@ function displayRecentAttendance(records) {
 
     records.forEach(record => {
         const statusClass = record.status === 'present' ? 'success' :
-                           record.status === 'late' ? 'warning' : 'danger';
+                            record.status === 'late' ? 'warning' : 'danger';
         html += `
             <tr>
-                <td>${record.date}</td>
-                <td>${record.class_name}</td>
-                <td><span class="badge bg-${statusClass}">${record.status}</span></td>
+                <td>${record.date || 'N/A'}</td>
+                <td>${record.class_name || 'Unknown'}</td>
+                <td><span class="badge bg-${statusClass}">${record.status || 'unknown'}</span></td>
                 <td>${record.time || 'N/A'}</td>
             </tr>
         `;

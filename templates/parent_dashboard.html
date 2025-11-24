@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Parent Dashboard - AI Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-user-friends"></i> Parent Dashboard</h5>
+                <div>
+                    <span class="badge bg-primary">{{ current_user.full_name }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Student Selection -->
+                <div class="mb-4">
+                    <h6>Select Student:</h6>
+                    <div class="row" id="studentSelector">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Attendance Overview -->
+                <div id="attendanceOverview" style="display: none;">
+                    <h6 class="mb-3">Attendance Overview for <span id="selectedStudentName"></span></h6>
+
+                    <!-- Quick Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h4 id="presentCount">-</h4>
+                                    <small>Present</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h4 id="lateCount">-</h4>
+                                    <small>Late</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <h4 id="absentCount">-</h4>
+                                    <small>Absent</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h4 id="attendanceRate">-</h4>
+                                    <small>Attendance Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Chart -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Attendance Trend (Last 30 Days)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="attendanceChart" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Attendance Records -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6>Recent Attendance Records</h6>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="exportAttendance()">
+                                        <i class="fas fa-download"></i> Export
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="attendanceTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Course</th>
+                                                    <th>Status</th>
+                                                    <th>Time</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="attendanceTableBody">
+                                                <!-- Attendance records will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Students Message -->
+                <div id="noStudentsMessage" class="text-center" style="display: none;">
+                    <div class="alert alert-info">
+                        <h5>No Students Linked</h5>
+                        <p>Please contact your school administrator to link your account with your child's student record.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Appeal Modal -->
+<div class="modal fade" id="appealModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appeal Attendance Record</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="appealForm">
+                    <input type="hidden" id="appealRecordId">
+                    <div class="mb-3">
+                        <label class="form-label">Appeal Reason</label>
+                        <select class="form-control" id="appealReason" required>
+                            <option value="">Select reason</option>
+                            <option value="medical">Medical Emergency</option>
+                            <option value="transportation">Transportation Issues</option>
+                            <option value="family">Family Emergency</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Additional Details</label>
+                        <textarea class="form-control" id="appealDetails" rows="3" placeholder="Please provide additional details about your appeal..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supporting Documents (Optional)</label>
+                        <input type="file" class="form-control" id="appealDocuments" multiple accept=".pdf,.jpg,.png,.doc,.docx">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAppeal()">Submit Appeal</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let currentStudentId = null;
+let attendanceChart = null;
+
+async function loadStudents() {
+    try {
+        const response = await fetch('/api/parent/students', { credentials: 'include' });
+        if (response.ok) {
+            const students = await response.json();
+            displayStudents(students);
+        } else {
+            document.getElementById('noStudentsMessage').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error loading students:', error);
+        document.getElementById('noStudentsMessage').style.display = 'block';
+    }
+}
+
+function displayStudents(students) {
+    const container = document.getElementById('studentSelector');
+
+    if (students.length === 0) {
+        document.getElementById('noStudentsMessage').style.display = 'block';
+        return;
+    }
+
+    students.forEach(student => {
+        const col = document.createElement('div');
+        col.className = 'col-md-4 mb-3';
+
+        col.innerHTML = `
+            <div class="card student-card ${currentStudentId === student.id ? 'border-primary' : ''}" onclick="selectStudent(${student.id}, '${student.full_name}')">
+                <div class="card-body text-center">
+                    <div class="avatar-circle mb-2">
+                        <i class="fas fa-user-graduate fa-2x text-primary"></i>
+                    </div>
+                    <h6 class="card-title">${student.full_name}</h6>
+                    <small class="text-muted">${student.email}</small>
+                    <br>
+                    <span class="badge bg-secondary mt-2">${student.grade || 'N/A'}</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    });
+
+    // Auto-select first student
+    if (students.length > 0 && !currentStudentId) {
+        selectStudent(students[0].id, students[0].full_name);
+    }
+}
+
+async function selectStudent(studentId, studentName) {
+    currentStudentId = studentId;
+    document.getElementById('selectedStudentName').textContent = studentName;
+
+    // Update selected card styling
+    document.querySelectorAll('.student-card').forEach(card => {
+        card.classList.remove('border-primary');
+    });
+    event.currentTarget.classList.add('border-primary');
+
+    // Load attendance data
+    await loadAttendanceData(studentId);
+    document.getElementById('attendanceOverview').style.display = 'block';
+}
+
+async function loadAttendanceData(studentId) {
+    try {
+        const response = await fetch(`/api/parent/students/${studentId}/attendance`, { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+            displayAttendanceData(data);
+        }
+    } catch (error) {
+        console.error('Error loading attendance data:', error);
+    }
+}
+
+function displayAttendanceData(data) {
+    // Update stats
+    document.getElementById('presentCount').textContent = data.stats.present;
+    document.getElementById('lateCount').textContent = data.stats.late;
+    document.getElementById('absentCount').textContent = data.stats.absent;
+    document.getElementById('attendanceRate').textContent = data.stats.attendance_rate + '%';
+
+    // Update chart
+    updateAttendanceChart(data.chart_data);
+
+    // Update table
+    const tbody = document.getElementById('attendanceTableBody');
+    tbody.innerHTML = '';
+
+    data.records.forEach(record => {
+        const statusBadge = getStatusBadge(record.status);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.date}</td>
+            <td>${record.course_name}</td>
+            <td>${statusBadge}</td>
+            <td>${record.time || 'N/A'}</td>
+            <td>
+                ${record.status === 'absent' ? `<button class="btn btn-sm btn-outline-warning" onclick="appealAttendance(${record.id})">
+                    <i class="fas fa-gavel"></i> Appeal
+                </button>` : ''}
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'present': '<span class="badge bg-success">Present</span>',
+        'late': '<span class="badge bg-warning">Late</span>',
+        'absent': '<span class="badge bg-danger">Absent</span>'
+    };
+    return badges[status] || status;
+}
+
+function updateAttendanceChart(chartData) {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+    if (attendanceChart) {
+        attendanceChart.destroy();
+    }
+
+    attendanceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: chartData.data,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function appealAttendance(recordId) {
+    document.getElementById('appealRecordId').value = recordId;
+    document.getElementById('appealForm').reset();
+    new bootstrap.Modal(document.getElementById('appealModal')).show();
+}
+
+async function submitAppeal() {
+    const recordId = document.getElementById('appealRecordId').value;
+    const reason = document.getElementById('appealReason').value;
+    const details = document.getElementById('appealDetails').value;
+
+    if (!reason) {
+        alert('Please select an appeal reason');
+        return;
+    }
+
+    const appealData = {
+        record_id: recordId,
+        reason: reason,
+        details: details
+    };
+
+    try {
+        const response = await fetch('/api/parent/appeals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(appealData)
+        });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('appealModal')).hide();
+            alert('Appeal submitted successfully! You will be notified of the decision.');
+            loadAttendanceData(currentStudentId); // Refresh data
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error submitting appeal:', error);
+        alert('Error submitting appeal');
+    }
+}
+
+async function exportAttendance() {
+    if (!currentStudentId) return;
+
+    try {
+        const response = await fetch(`/api/parent/students/${currentStudentId}/attendance/export`, { credentials: 'include' });
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'attendance_report.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    } catch (error) {
+        console.error('Error exporting attendance:', error);
+        alert('Error exporting attendance report');
+    }
+}
+
+// Load students on page load
+document.addEventListener('DOMContentLoaded', loadStudents);
+</script>
+{% endblock %}</content>
+<parameter name="filePath">templates/parent_dashboard.html

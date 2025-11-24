@@ -5,6 +5,10 @@ from typing import Optional, Tuple, Dict, Any
 from pathlib import Path
 import hashlib
 import shutil
+import secrets
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import request, jsonify, session
 
 class InputValidator:
     """Validate and sanitize user inputs"""
@@ -309,7 +313,134 @@ class PrivacyManager:
         return data_age_seconds <= max_age_seconds
 
 
+# Password policy and security configuration
+class SecurityConfig:
+    MIN_PASSWORD_LENGTH = 8
+    MAX_PASSWORD_LENGTH = 128
+    REQUIRE_UPPERCASE = True
+    REQUIRE_LOWERCASE = True
+    REQUIRE_DIGITS = True
+    REQUIRE_SPECIAL_CHARS = True
+    MAX_LOGIN_ATTEMPTS = 5
+    LOGIN_LOCKOUT_DURATION = 15  # minutes
+    SESSION_TIMEOUT = 60  # minutes
+    REQUIRE_HTTPS = True
+
+class PasswordValidator:
+    @staticmethod
+    def validate_password(password):
+        """Validate password against security policy"""
+        errors = []
+        
+        if not password:
+            errors.append("Password is required")
+            return False, errors
+        
+        if len(password) < SecurityConfig.MIN_PASSWORD_LENGTH:
+            errors.append(f"Password must be at least {SecurityConfig.MIN_PASSWORD_LENGTH} characters long")
+        
+        if len(password) > SecurityConfig.MAX_PASSWORD_LENGTH:
+            errors.append(f"Password must not exceed {SecurityConfig.MAX_PASSWORD_LENGTH} characters")
+        
+        if SecurityConfig.REQUIRE_UPPERCASE and not re.search(r'[A-Z]', password):
+            errors.append("Password must contain at least one uppercase letter")
+        
+        if SecurityConfig.REQUIRE_LOWERCASE and not re.search(r'[a-z]', password):
+            errors.append("Password must contain at least one lowercase letter")
+        
+        if SecurityConfig.REQUIRE_DIGITS and not re.search(r'\d', password):
+            errors.append("Password must contain at least one digit")
+        
+        if SecurityConfig.REQUIRE_SPECIAL_CHARS and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            errors.append("Password must contain at least one special character")
+        
+        # Check for common weak passwords
+        weak_passwords = [
+            'password', '123456', '123456789', 'qwerty', 'abc123',
+            'password123', 'admin', 'letmein', 'welcome', 'monkey'
+        ]
+        if password.lower() in weak_passwords:
+            errors.append("Password is too common. Please choose a stronger password")
+        
+        return len(errors) == 0, errors
+
+class RateLimiter:
+    def __init__(self):
+        self.attempts = {}  # IP -> {count: int, last_attempt: datetime}
+    
+    def is_rate_limited(self, ip_address, max_attempts=None, lockout_duration=None):
+        """Check if IP is rate limited"""
+        if max_attempts is None:
+            max_attempts = SecurityConfig.MAX_LOGIN_ATTEMPTS
+        if lockout_duration is None:
+            lockout_duration = SecurityConfig.LOGIN_LOCKOUT_DURATION
+        
+        now = datetime.now()
+        
+        if ip_address not in self.attempts:
+            self.attempts[ip_address] = {'count': 0, 'last_attempt': now}
+            return False
+        
+        attempts_data = self.attempts[ip_address]
+        
+        # Reset if lockout period has passed
+        if now - attempts_data['last_attempt'] > timedelta(minutes=lockout_duration):
+            attempts_data['count'] = 0
+            attempts_data['last_attempt'] = now
+            return False
+        
+        # Check if rate limited
+        if attempts_data['count'] >= max_attempts:
+            return True
+        
+        return False
+    
+    def record_attempt(self, ip_address):
+        """Record a failed attempt"""
+        now = datetime.now()
+        if ip_address not in self.attempts:
+            self.attempts[ip_address] = {'count': 1, 'last_attempt': now}
+        else:
+            self.attempts[ip_address]['count'] += 1
+            self.attempts[ip_address]['last_attempt'] = now
+    
+    def clear_attempts(self, ip_address):
+        """Clear attempts for successful login"""
+        if ip_address in self.attempts:
+            del self.attempts[ip_address]
+
+def require_https(f):
+    """Decorator to require HTTPS for production"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if SecurityConfig.REQUIRE_HTTPS and not request.is_secure:
+            return jsonify({
+                'error': 'HTTPS required',
+                'message': 'This endpoint requires a secure HTTPS connection'
+            }), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+def generate_csrf_token():
+    """Generate a new CSRF token"""
+    return secrets.token_urlsafe(32)
+
+def validate_csrf_token(f):
+    """Decorator to validate CSRF tokens"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.method in ['POST', 'PUT', 'DELETE']:
+            token = request.headers.get('X-CSRF-Token')
+            if not token or token != session.get('csrf_token'):
+                return jsonify({
+                    'error': 'Invalid CSRF token',
+                    'message': 'CSRF validation failed'
+                }), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Global instances
 input_validator = InputValidator()
 file_handler = SecureFileHandler("data")
 privacy_manager = PrivacyManager()
+rate_limiter = RateLimiter()

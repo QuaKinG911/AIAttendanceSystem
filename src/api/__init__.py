@@ -18,7 +18,8 @@ def create_app():
     # Get the project root directory (parent of src)
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     template_dir = os.path.join(project_root, 'templates')
-    app = Flask(__name__, template_folder=template_dir)
+    static_dir = os.path.join(project_root, 'static')
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
@@ -46,12 +47,14 @@ def create_app():
     from .classes import classes_bp
     from .attendance import attendance_bp
     from .analytics import analytics_bp
+    from .admin import admin_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(classes_bp, url_prefix='/api/classes')
     app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
     # Health check endpoint
     @app.route('/api/health')

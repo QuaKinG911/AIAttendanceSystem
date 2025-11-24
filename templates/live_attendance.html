@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block title %}Live Attendance Session - AI Attendance System{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/teacher/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="/teacher/attendance">Attendance</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Live Session</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-video"></i> Live Attendance Session</h5>
+                <div id="sessionControls">
+                    <button class="btn btn-success btn-sm" onclick="startSession()" id="startBtn">
+                        <i class="fas fa-play"></i> Start Session
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="pauseSession()" id="pauseBtn" disabled>
+                        <i class="fas fa-pause"></i> Pause
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="endSession()" id="endBtn" disabled>
+                        <i class="fas fa-stop"></i> End Session
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Video Container -->
+                <div class="video-container mb-3">
+                    <video id="videoElement" autoplay playsinline muted style="width: 100%; max-height: 400px; border-radius: 8px;"></video>
+                    <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+                </div>
+
+                <!-- Session Info -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-clock"></i> Session Timer</h6>
+                                <div id="sessionTimer" class="h4 text-primary">00:00:00</div>
+                                <small class="text-muted">Started: <span id="sessionStartTime">Not started</span></small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-users"></i> Live Stats</h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h5 text-success" id="presentCount">0</div>
+                                        <small>Present</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 text-warning" id="lateCount">0</div>
+                                        <small>Late</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 text-info" id="processingCount">0</div>
+                                        <small>Processing</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Live Attendance Feed -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Live Attendance</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div id="attendanceFeed" class="list-group">
+                    <div class="list-group-item text-center text-muted">
+                        <i class="fas fa-info-circle"></i> Session not started
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-camera"></i> Camera Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="cameraSelect" class="form-label">Camera</label>
+                    <select class="form-select" id="cameraSelect" onchange="switchCamera()">
+                        <option value="">Select Camera</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="detectionInterval" class="form-label">Detection Interval (ms)</label>
+                    <input type="range" class="form-range" id="detectionInterval" min="500" max="5000" step="500" value="1000">
+                    <div class="text-center">
+                        <span id="intervalValue" class="badge bg-secondary">1000ms</span>
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showOverlay" checked>
+                    <label class="form-check-label" for="showOverlay">
+                        Show face detection overlay
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Configuration Modal -->
+<div class="modal fade" id="sessionConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Session Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sessionConfigForm">
+                    <div class="mb-3">
+                        <label for="classSelect" class="form-label">Class</label>
+                        <select class="form-control" id="classSelect" required>
+                            <option value="">Select a class</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="presentWindow" class="form-label">Present Window (minutes)</label>
+                                <input type="number" class="form-control" id="presentWindow" value="5" min="1" max="60" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lateWindow" class="form-label">Late Window (minutes)</label>
+                                <input type="number" class="form-control" id="lateWindow" value="15" min="1" max="120" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="autoEndTime" class="form-label">Auto-end Time (optional)</label>
+                        <input type="time" class="form-control" id="autoEndTime">
+                        <small class="form-text text-muted">Leave empty for manual end</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="initializeSession()">Start Session</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Global variables
+let videoStream = null;
+let sessionId = null;
+let sessionStartTime = null;
+let sessionTimer = null;
+let detectionInterval = 1000;
+let isSessionActive = false;
+let isPaused = false;
+let recognizedStudents = new Set();
+let processingQueue = new Set();
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCamera();
+    loadTeacherClasses();
+
+    // Update interval display
+    document.getElementById('detectionInterval').addEventListener('input', function() {
+        detectionInterval = parseInt(this.value);
+        document.getElementById('intervalValue').textContent = this.value + 'ms';
+    });
+});
+
+async function initializeCamera() {
+    try {
+        // Get available cameras
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+
+        const cameraSelect = document.getElementById('cameraSelect');
+        cameras.forEach((camera, index) => {
+            const option = document.createElement('option');
+            option.value = camera.deviceId;
+            option.textContent = camera.label || `Camera ${index + 1}`;
+            cameraSelect.appendChild(option);
+        });
+
+        // Auto-select first camera
+        if (cameras.length > 0) {
+            cameraSelect.value = cameras[0].deviceId;
+            await startCamera(cameras[0].deviceId);
+        }
+
+    } catch (error) {
+        console.error('Error initializing camera:', error);
+        showToast('Failed to access camera', 'error');
+    }
+}
+
+async function startCamera(deviceId) {
+    try {
+        const constraints = {
+            video: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        };
+
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const videoElement = document.getElementById('videoElement');
+        videoElement.srcObject = videoStream;
+
+        // Setup overlay canvas
+        setupOverlayCanvas();
+
+        showToast('Camera started successfully', 'success');
+
+    } catch (error) {
+        console.error('Error starting camera:', error);
+        showToast('Failed to start camera', 'error');
+    }
+}
+
+function setupOverlayCanvas() {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('overlayCanvas');
+
+    function resizeCanvas() {
+        const rect = video.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+    }
+
+    video.addEventListener('loadedmetadata', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+}
+
+async function switchCamera() {
+    const deviceId = document.getElementById('cameraSelect').value;
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    await startCamera(deviceId);
+}
+
+function loadTeacherClasses() {
+    fetch('/api/classes', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data && Array.isArray(data)) {
+                const select = document.getElementById('classSelect');
+                data.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = cls.name;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading classes:', error));
+}
+
+function startSession() {
+    // Show session configuration modal
+    new bootstrap.Modal(document.getElementById('sessionConfigModal')).show();
+}
+
+function initializeSession() {
+    const classId = document.getElementById('classSelect').value;
+    const presentWindow = document.getElementById('presentWindow').value;
+    const lateWindow = document.getElementById('lateWindow').value;
+    const autoEndTime = document.getElementById('autoEndTime').value;
+
+    if (!classId) {
+        showToast('Please select a class', 'warning');
+        return;
+    }
+
+    const sessionData = {
+        class_id: parseInt(classId),
+        present_window: parseInt(presentWindow),
+        late_window: parseInt(lateWindow),
+        auto_end_time: autoEndTime || null
+    };
+
+    fetch('/api/attendance/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(sessionData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            sessionId = data.session_id;
+            sessionStartTime = new Date();
+
+            // Close modal and start session
+            bootstrap.Modal.getInstance(document.getElementById('sessionConfigModal')).hide();
+            beginSession();
+        } else {
+            showToast('Failed to start session: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error starting session:', error);
+        showToast('Error starting session', 'error');
+    });
+}
+
+function beginSession() {
+    isSessionActive = true;
+    isPaused = false;
+
+    // Update UI
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('pauseBtn').disabled = false;
+    document.getElementById('endBtn').disabled = false;
+    document.getElementById('sessionStartTime').textContent = sessionStartTime.toLocaleTimeString();
+
+    // Start session timer
+    startSessionTimer();
+
+    // Start face detection loop
+    startFaceDetection();
+
+    // Update attendance feed
+    updateAttendanceFeed();
+
+    showToast('Attendance session started!', 'success');
+}
+
+function startSessionTimer() {
+    sessionTimer = setInterval(() => {
+        if (!isPaused) {
+            const elapsed = Math.floor((new Date() - sessionStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+
+            document.getElementById('sessionTimer').textContent =
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
+function startFaceDetection() {
+    setInterval(async () => {
+        if (!isSessionActive || isPaused) return;
+
+        try {
+            const video = document.getElementById('videoElement');
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            // Convert to blob and send for processing
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('frame', blob);
+                formData.append('session_id', sessionId);
+
+                // Add to processing queue
+                const processingId = Date.now() + Math.random();
+                processingQueue.add(processingId);
+                updateProcessingCount();
+
+                try {
+                    const response = await fetch('/api/attendance/process-frame', {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.recognitions) {
+                        handleRecognitions(result.recognitions);
+                    }
+                } catch (error) {
+                    console.error('Frame processing error:', error);
+                } finally {
+                    processingQueue.delete(processingId);
+                    updateProcessingCount();
+                }
+            }, 'image/jpeg', 0.8);
+
+        } catch (error) {
+            console.error('Face detection error:', error);
+        }
+    }, detectionInterval);
+}
+
+function handleRecognitions(recognitions) {
+    recognitions.forEach(recognition => {
+        if (recognition.student_id && !recognizedStudents.has(recognition.student_id)) {
+            recognizedStudents.add(recognition.student_id);
+
+            // Add to attendance feed
+            addToAttendanceFeed(recognition);
+
+            // Update counts
+            updateAttendanceCounts();
+        }
+
+        // Draw overlay if enabled
+        if (document.getElementById('showOverlay').checked) {
+            drawFaceOverlay(recognition);
+        }
+    });
+}
+
+function addToAttendanceFeed(recognition) {
+    const feed = document.getElementById('attendanceFeed');
+    const time = new Date().toLocaleTimeString();
+
+    const item = document.createElement('div');
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    item.innerHTML = `
+        <div>
+            <strong>${recognition.student_name}</strong><br>
+            <small class="text-muted">${time} • ${recognition.confidence}% confidence</small>
+        </div>
+        <span class="badge bg-${getStatusBadge(recognition.status)}">${recognition.status}</span>
+    `;
+
+    // Remove "session not started" message if present
+    const placeholder = feed.querySelector('.text-muted');
+    if (placeholder) placeholder.remove();
+
+    feed.insertBefore(item, feed.firstChild);
+
+    // Keep only last 20 items
+    while (feed.children.length > 20) {
+        feed.removeChild(feed.lastChild);
+    }
+}
+
+function getStatusBadge(status) {
+    switch(status) {
+        case 'present': return 'success';
+        case 'late': return 'warning';
+        case 'absent': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function updateAttendanceCounts() {
+    const present = Array.from(recognizedStudents).filter(id => {
+        // In a real implementation, you'd check the actual status
+        return true; // Simplified
+    }).length;
+
+    const late = 0; // Would be calculated based on time
+
+    document.getElementById('presentCount').textContent = present;
+    document.getElementById('lateCount').textContent = late;
+}
+
+function updateProcessingCount() {
+    document.getElementById('processingCount').textContent = processingQueue.size;
+}
+
+function drawFaceOverlay(recognition) {
+    const canvas = document.getElementById('overlayCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Clear previous drawings
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (recognition.bounding_box) {
+        const [x1, y1, x2, y2] = recognition.bounding_box;
+
+        // Scale coordinates to canvas size
+        const scaleX = canvas.width / recognition.frame_width;
+        const scaleY = canvas.height / recognition.frame_height;
+
+        ctx.strokeStyle = recognition.student_id ? '#00ff00' : '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+
+        // Draw label
+        ctx.fillStyle = recognition.student_id ? '#00ff00' : '#ff0000';
+        ctx.font = '12px Arial';
+        const label = recognition.student_id ? recognition.student_name : 'Unknown';
+        ctx.fillText(label, x1 * scaleX, y1 * scaleY - 5);
+    }
+}
+
+function updateAttendanceFeed() {
+    const feed = document.getElementById('attendanceFeed');
+    feed.innerHTML = '';
+
+    if (recognizedStudents.size === 0) {
+        feed.innerHTML = '<div class="list-group-item text-center text-muted"><i class="fas fa-info-circle"></i> Waiting for recognitions...</div>';
+    }
+}
+
+function pauseSession() {
+    isPaused = !isPaused;
+    const pauseBtn = document.getElementById('pauseBtn');
+
+    if (isPaused) {
+        pauseBtn.innerHTML = '<i class="fas fa-play"></i> Resume';
+        pauseBtn.className = 'btn btn-success btn-sm';
+        showToast('Session paused', 'warning');
+    } else {
+        pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+        pauseBtn.className = 'btn btn-warning btn-sm';
+        showToast('Session resumed', 'success');
+    }
+}
+
+function endSession() {
+    if (!confirm('Are you sure you want to end this attendance session?')) return;
+
+    isSessionActive = false;
+
+    // Stop timer
+    if (sessionTimer) {
+        clearInterval(sessionTimer);
+        sessionTimer = null;
+    }
+
+    // Update UI
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('pauseBtn').disabled = true;
+    document.getElementById('endBtn').disabled = true;
+
+    // End session on server
+    fetch(`/api/attendance/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'completed' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Session ended successfully!', 'success');
+            // Reset session state
+            sessionId = null;
+            sessionStartTime = null;
+            recognizedStudents.clear();
+            updateAttendanceFeed();
+            updateAttendanceCounts();
+        } else {
+            showToast('Failed to end session', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error ending session:', error);
+        showToast('Error ending session', 'error');
+    });
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    if (sessionTimer) {
+        clearInterval(sessionTimer);
+    }
+});
+</script>
+{% endblock %}

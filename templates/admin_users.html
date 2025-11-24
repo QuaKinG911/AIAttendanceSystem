@@ -2,16 +2,29 @@
 
 {% block title %}User Management - AI Attendance System{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">User Management</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-users"></i> User Management</h5>
-                <button class="btn btn-primary" onclick="showCreateUserModal()">
-                    <i class="fas fa-user-plus"></i> Add User
-                </button>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-users"></i> User Management</h2>
+                <p class="text-muted">Manage students, teachers, and administrators</p>
             </div>
+            <button class="btn btn-primary" onclick="showCreateUserModal()" data-bs-toggle="tooltip" data-bs-placement="top" title="Create a new user account">
+                <i class="fas fa-plus"></i> Create User
+            </button>
+        </div>
+    </div>
+</div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-striped" id="usersTable">
@@ -58,11 +71,16 @@
                     </div>
                     <div class="mb-3">
                         <label for="role" class="form-label">Role</label>
-                        <select class="form-control" id="role" required>
+                        <select class="form-control" id="role" onchange="toggleFaceUpload()" required>
                             <option value="student">Student</option>
                             <option value="teacher">Teacher</option>
                             <option value="admin">Admin</option>
                         </select>
+                    </div>
+                    <div class="mb-3" id="faceImageField" style="display: none;">
+                        <label for="faceImage" class="form-label">Face Image (Required for Students)</label>
+                        <input type="file" class="form-control" id="faceImage" accept="image/*" required>
+                        <small class="form-text text-muted">Upload a clear photo of the student's face for AI attendance recognition</small>
                     </div>
                 </form>
             </div>
@@ -85,25 +103,73 @@
             <div class="modal-body">
                 <form id="editUserForm">
                     <input type="hidden" id="editUserId">
-                    <div class="mb-3">
-                        <label for="editUsername" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="editUsername" required>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editUsername" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="editUsername">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="editEmail" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="editEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="editEmail" required>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editFullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="editFullName">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editNationality" class="form-label">Nationality</label>
+                                <input type="text" class="form-control" id="editNationality">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editBirthday" class="form-label">Birthday</label>
+                                <input type="date" class="form-control" id="editBirthday">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editRole" class="form-label">Role</label>
+                                <select class="form-control" id="editRole" required>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="studentFields" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editMajor" class="form-label">Major</label>
+                                <input type="text" class="form-control" id="editMajor">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editGrade" class="form-label">Grade</label>
+                                <input type="text" class="form-control" id="editGrade">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="teacherFields" style="display: none;">
+                        <label for="editCourses" class="form-label">Courses (comma-separated)</label>
+                        <input type="text" class="form-control" id="editCourses" placeholder="e.g. Math, Science, English">
                     </div>
                     <div class="mb-3">
                         <label for="editPassword" class="form-label">New Password (leave empty to keep current)</label>
                         <input type="password" class="form-control" id="editPassword">
-                    </div>
-                    <div class="mb-3">
-                        <label for="editRole" class="form-label">Role</label>
-                        <select class="form-control" id="editRole" required>
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                        </select>
                     </div>
                 </form>
             </div>
@@ -119,18 +185,35 @@
 let users = [];
 
 async function loadUsers() {
+    showLoading('usersTableBody', true);
     try {
-        const response = await fetch('/api/admin/users');
-        users = await response.json();
-        displayUsers();
+        const response = await fetch('/api/admin/users', { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+            users = data.users;
+            displayUsers();
+        } else if (response.status === 403) {
+            // Redirect to login if unauthorized
+            window.location.href = '/login';
+        } else {
+            showToast('Failed to load users', 'error');
+        }
     } catch (error) {
         console.error('Error loading users:', error);
+        showToast('Error loading users', 'error');
+    } finally {
+        showLoading('usersTableBody', false);
     }
 }
 
 function displayUsers() {
     const tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = '';
+
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users found</td></tr>';
+        return;
+    }
 
     users.forEach(user => {
         const row = document.createElement('tr');
@@ -140,10 +223,10 @@ function displayUsers() {
             <td><span class="badge bg-${getRoleColor(user.role)}">${user.role}</span></td>
             <td>${new Date(user.created_at).toLocaleDateString()}</td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})">
+                <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit user details and permissions">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Permanently delete this user account">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -166,33 +249,99 @@ function showCreateUserModal() {
     new bootstrap.Modal(document.getElementById('createUserModal')).show();
 }
 
+function toggleFaceUpload() {
+    const role = document.getElementById('role').value;
+    const faceField = document.getElementById('faceImageField');
+    const faceInput = document.getElementById('faceImage');
+
+    if (role === 'student') {
+        faceField.style.display = 'block';
+        faceInput.required = true;
+    } else {
+        faceField.style.display = 'none';
+        faceInput.required = false;
+    }
+}
+
 async function createUser() {
-    const formData = new FormData(document.getElementById('createUserForm'));
+    const createBtn = document.querySelector('#createUserModal .btn-primary');
+    const originalText = createBtn.innerHTML;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    createBtn.disabled = true;
+
+    const role = document.getElementById('role').value;
     const userData = {
         username: document.getElementById('username').value,
         email: document.getElementById('email').value,
         password: document.getElementById('password').value,
-        role: document.getElementById('role').value
+        role: role
     };
 
-    try {
-        const response = await fetch('/api/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userData)
-        });
-
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
-            loadUsers();
-            alert('User created successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
+    // Handle file upload for students
+    if (role === 'student') {
+        const faceImage = document.getElementById('faceImage').files[0];
+        if (!faceImage) {
+            alert('Face image is required for students');
+            return;
         }
-    } catch (error) {
-        console.error('Error creating user:', error);
-        alert('Error creating user');
+
+        // Use FormData for file upload
+        const formData = new FormData();
+        Object.keys(userData).forEach(key => {
+            formData.append(key, userData[key]);
+        });
+        formData.append('face_image', faceImage);
+
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                document.getElementById('createUserForm').reset();
+                toggleFaceUpload(); // Reset the form state
+                loadUsers();
+                showToast('Student created successfully with face recognition enabled!', 'success');
+            } else {
+                const error = await response.json();
+                showToast('Error: ' + error.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            showToast('Error creating user', 'error');
+        } finally {
+            createBtn.innerHTML = originalText;
+            createBtn.disabled = false;
+        }
+    } else {
+        // Regular user creation for teachers/admins
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                document.getElementById('createUserForm').reset();
+                loadUsers();
+                showToast('User created successfully!', 'success');
+            } else {
+                const error = await response.json();
+                showToast('Error: ' + error.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            showToast('Error creating user', 'error');
+        } finally {
+            createBtn.innerHTML = originalText;
+            createBtn.disabled = false;
+        }
     }
 }
 
@@ -201,10 +350,19 @@ function editUser(userId) {
     if (!user) return;
 
     document.getElementById('editUserId').value = user.id;
-    document.getElementById('editUsername').value = user.username;
+    document.getElementById('editUsername').value = user.username || '';
     document.getElementById('editEmail').value = user.email;
-    document.getElementById('editPassword').value = '';
+    document.getElementById('editFullName').value = user.full_name || '';
+    document.getElementById('editNationality').value = user.nationality || '';
+    document.getElementById('editBirthday').value = user.birthday ? user.birthday.split('T')[0] : '';
     document.getElementById('editRole').value = user.role;
+    document.getElementById('editMajor').value = user.major || '';
+    document.getElementById('editGrade').value = user.grade || '';
+    document.getElementById('editCourses').value = user.courses ? user.courses.join(', ') : '';
+    document.getElementById('editPassword').value = '';
+
+    // Show/hide role-specific fields
+    toggleRoleFields(user.role);
 
     new bootstrap.Modal(document.getElementById('editUserModal')).show();
 }
@@ -214,8 +372,24 @@ async function updateUser() {
     const userData = {
         username: document.getElementById('editUsername').value,
         email: document.getElementById('editEmail').value,
+        full_name: document.getElementById('editFullName').value,
+        nationality: document.getElementById('editNationality').value,
         role: document.getElementById('editRole').value
     };
+
+    const birthday = document.getElementById('editBirthday').value;
+    if (birthday) {
+        userData.birthday = birthday;
+    }
+
+    const role = userData.role;
+    if (role === 'student') {
+        userData.major = document.getElementById('editMajor').value;
+        userData.grade = document.getElementById('editGrade').value;
+    } else if (role === 'teacher') {
+        const courses = document.getElementById('editCourses').value;
+        userData.courses = courses ? courses.split(',').map(c => c.trim()) : [];
+    }
 
     const password = document.getElementById('editPassword').value;
     if (password) {
@@ -226,6 +400,7 @@ async function updateUser() {
         const response = await fetch(`/api/admin/users/${userId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(userData)
         });
 
@@ -248,7 +423,8 @@ async function deleteUser(userId) {
 
     try {
         const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
 
         if (response.ok) {
@@ -262,6 +438,37 @@ async function deleteUser(userId) {
         alert('Error deleting user');
     }
 }
+
+function toggleRoleFields(role) {
+    document.getElementById('studentFields').style.display = role === 'student' ? 'block' : 'none';
+    document.getElementById('teacherFields').style.display = role === 'teacher' ? 'block' : 'none';
+}
+
+// Add event listener for role change
+document.getElementById('editRole').addEventListener('change', function() {
+    toggleRoleFields(this.value);
+});
+
+// Keyboard shortcuts for user management
+document.addEventListener('keydown', function(event) {
+    // Ctrl+N to create new user
+    if (event.ctrlKey && event.key === 'n') {
+        event.preventDefault();
+        showCreateUserModal();
+    }
+
+    // Ctrl+S to save in modals
+    if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        const activeModal = document.querySelector('.modal.show');
+        if (activeModal) {
+            const saveBtn = activeModal.querySelector('.btn-primary');
+            if (saveBtn && !saveBtn.disabled) {
+                saveBtn.click();
+            }
+        }
+    }
+});
 
 // Load users on page load
 document.addEventListener('DOMContentLoaded', loadUsers);

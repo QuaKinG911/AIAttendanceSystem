@@ -1,72 +1,96 @@
 {% extends "base.html" %}
 
-{% block title %}Analytics - AI Attendance System{% endblock %}
+{% block title %}Attendance Analytics - AI Attendance System{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Analytics</li>
+    </ol>
+</nav>
+{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-bar"></i> System Analytics</h5>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-chart-line"></i> Attendance Analytics</h2>
+                <p class="text-muted">Comprehensive attendance insights and reporting</p>
             </div>
+            <div>
+                <select class="form-select d-inline-block w-auto me-2" id="timeRange">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                </select>
+                <button class="btn btn-primary" onclick="refreshAnalytics()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6>Attendance Trends (Last 30 Days)</h6>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="trendsChart" width="400" height="200"></canvas>
-                            </div>
-                        </div>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 id="totalSessions">0</h3>
+                        <p class="mb-0">Total Sessions</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6>Class Performance</h6>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="performanceChart" width="400" height="200"></canvas>
-                            </div>
-                        </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-check fa-2x opacity-75"></i>
                     </div>
                 </div>
-
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6>System Alerts</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="system-alerts">
-                                    <div class="text-center">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 id="avgAttendance">0%</h3>
+                        <p class="mb-0">Avg Attendance</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6>Export Options</h6>
-                            </div>
-                            <div class="card-body">
-                                <button class="btn btn-primary w-100 mb-2" onclick="exportAttendanceData()">
-                                    <i class="fas fa-download"></i> Export All Attendance Data
-                                </button>
-                                <button class="btn btn-success w-100 mb-2" onclick="exportUserReport()">
-                                    <i class="fas fa-users"></i> Export User Report
-                                </button>
-                                <button class="btn btn-info w-100" onclick="exportClassReport()">
-                                    <i class="fas fa-graduation-cap"></i> Export Class Report
-                                </button>
-                            </div>
-                        </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 id="totalStudents">0</h3>
+                        <p class="mb-0">Total Students</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-graduation-cap fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 id="recognitionRate">0%</h3>
+                        <p class="mb-0">Recognition Rate</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-robot fa-2x opacity-75"></i>
                     </div>
                 </div>
             </div>
@@ -74,35 +98,337 @@
     </div>
 </div>
 
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> Attendance Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceTrendChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Attendance Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceDistributionChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Class Performance and Student Details -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-school"></i> Class Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="classPerformanceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-clock"></i> Peak Attendance Hours</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="peakHoursChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts and Notifications -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bell"></i> System Alerts</h5>
+            </div>
+            <div class="card-body" id="alertsContainer">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy"></i> Top Performers</h5>
+            </div>
+            <div class="card-body" id="topPerformersContainer">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Predictive Analytics -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-brain"></i> Attendance Predictions</h5>
+            </div>
+            <div class="card-body">
+                <div id="predictionsContainer">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> Trend Analysis</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendAnalysisChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Academic Performance Correlation -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-graduation-cap"></i> Attendance vs Academic Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="academicCorrelationChart" height="200"></canvas>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        Correlation coefficient: <strong id="correlationCoeff">0.75</strong><br>
+                        Higher attendance correlates with better academic performance
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Performance Insights</h5>
+            </div>
+            <div class="card-body" id="performanceInsights">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Analytics -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-table"></i> Detailed Attendance Report</h5>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportReport('csv')">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="exportReport('excel')">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="exportReport('pdf')">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="detailedReportTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Class</th>
+                                <th>Present</th>
+                                <th>Late</th>
+                                <th>Absent</th>
+                                <th>Recognition Rate</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <!-- Report data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Performance Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Student Attendance Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="studentDetails">
+                    <!-- Student details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-async function loadAnalytics() {
-    try {
-        // Load trends data
-        const trendsResponse = await fetch('/api/analytics/trends');
-        const trendsData = await trendsResponse.json();
+// Global variables
+let attendanceTrendChart = null;
+let attendanceDistributionChart = null;
+let classPerformanceChart = null;
+let peakHoursChart = null;
 
-        // Load anomalies
-        const anomaliesResponse = await fetch('/api/analytics/anomalies');
-        const anomaliesData = await anomaliesResponse.json();
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnalyticsData();
+});
 
-        displayTrends(trendsData);
-        displayAnomalies(anomaliesData);
-    } catch (error) {
-        console.error('Error loading analytics:', error);
-    }
+function loadAnalyticsData() {
+    const timeRange = document.getElementById('timeRange').value;
+
+    showLoading('reportTableBody', true);
+
+    fetch(`/api/analytics/dashboard?days=${timeRange}`, { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            showLoading('reportTableBody', false);
+
+            if (data.success) {
+                updateMetrics(data.metrics);
+                updateCharts(data.charts);
+                updateAlerts(data.alerts);
+                updateTopPerformers(data.performers);
+                updatePredictions(data.predictions);
+                updateAcademicCorrelation(data.academic_correlation);
+                updatePerformanceInsights(data.performance_insights);
+                updateDetailedReport(data.report);
+            } else {
+                showToast('Failed to load analytics data', 'error');
+            }
+        })
+        .catch(error => {
+            showLoading('reportTableBody', false);
+            console.error('Error loading analytics:', error);
+            showToast('Error loading analytics data', 'error');
+        });
 }
 
-function displayTrends(data) {
-    const ctx = document.getElementById('trendsChart').getContext('2d');
-    new Chart(ctx, {
+function updateMetrics(metrics) {
+    document.getElementById('totalSessions').textContent = metrics.total_sessions || 0;
+    document.getElementById('avgAttendance').textContent = `${(metrics.avg_attendance || 0).toFixed(1)}%`;
+    document.getElementById('totalStudents').textContent = metrics.total_students || 0;
+    document.getElementById('recognitionRate').textContent = `${(metrics.recognition_rate || 0).toFixed(1)}%`;
+}
+
+function updateCharts(chartData) {
+    // Attendance Trend Chart
+    if (attendanceTrendChart) {
+        attendanceTrendChart.destroy();
+    }
+
+    const ctxTrend = document.getElementById('attendanceTrendChart').getContext('2d');
+    attendanceTrendChart = new Chart(ctxTrend, {
         type: 'line',
         data: {
-            labels: data.map(d => d.date),
+            labels: chartData.trend.labels,
             datasets: [{
                 label: 'Attendance Rate (%)',
-                data: data.map(d => d.rate),
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
+                data: chartData.trend.data,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Attendance Distribution Chart
+    if (attendanceDistributionChart) {
+        attendanceDistributionChart.destroy();
+    }
+
+    const ctxDist = document.getElementById('attendanceDistributionChart').getContext('2d');
+    attendanceDistributionChart = new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Late', 'Absent'],
+            datasets: [{
+                data: chartData.distribution,
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Class Performance Chart
+    if (classPerformanceChart) {
+        classPerformanceChart.destroy();
+    }
+
+    const ctxClass = document.getElementById('classPerformanceChart').getContext('2d');
+    classPerformanceChart = new Chart(ctxClass, {
+        type: 'bar',
+        data: {
+            labels: chartData.classes.labels,
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: chartData.classes.data,
+                backgroundColor: '#17a2b8',
+                borderColor: '#17a2b8',
+                borderWidth: 1
             }]
         },
         options: {
@@ -115,62 +441,358 @@ function displayTrends(data) {
             }
         }
     });
+
+    // Peak Hours Chart
+    if (peakHoursChart) {
+        peakHoursChart.destroy();
+    }
+
+    const ctxHours = document.getElementById('peakHoursChart').getContext('2d');
+    peakHoursChart = new Chart(ctxHours, {
+        type: 'bar',
+        data: {
+            labels: chartData.hours.labels,
+            datasets: [{
+                label: 'Sessions',
+                data: chartData.hours.data,
+                backgroundColor: '#6f42c1',
+                borderColor: '#6f42c1',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }
 
-function displayAnomalies(anomalies) {
-    const alertsDiv = document.getElementById('system-alerts');
+function updateAlerts(alerts) {
+    const container = document.getElementById('alertsContainer');
 
-    if (anomalies.length === 0) {
-        alertsDiv.innerHTML = '<div class="alert alert-success">No system alerts at this time.</div>';
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No system alerts at this time.</div>';
         return;
     }
 
     let html = '';
-    anomalies.forEach(anomaly => {
-        const alertClass = anomaly.type === 'low_attendance' ? 'alert-warning' : 'alert-info';
+    alerts.forEach(alert => {
+        const alertClass = alert.type === 'low_attendance' ? 'alert-warning' :
+                          alert.type === 'high_absence' ? 'alert-danger' : 'alert-info';
+        const icon = alert.type === 'low_attendance' ? 'fas fa-exclamation-triangle' :
+                    alert.type === 'high_absence' ? 'fas fa-times-circle' : 'fas fa-info-circle';
+
         html += `
             <div class="alert ${alertClass}">
-                <strong>${anomaly.type.replace('_', ' ').toUpperCase()}:</strong> ${anomaly.message}
+                <i class="${icon}"></i>
+                <strong>${alert.title}:</strong> ${alert.message}
+                <small class="d-block mt-1">${alert.timestamp}</small>
             </div>
         `;
     });
 
-    alertsDiv.innerHTML = html;
+    container.innerHTML = html;
 }
 
-async function exportAttendanceData() {
-    try {
-        const response = await fetch('/api/analytics/export');
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'attendance_export.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } else {
-            alert('Error exporting data');
-        }
-    } catch (error) {
-        console.error('Error exporting data:', error);
-        alert('Error exporting data');
+function updateTopPerformers(performers) {
+    const container = document.getElementById('topPerformersContainer');
+
+    if (!performers || performers.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted">No performance data available</div>';
+        return;
     }
+
+    let html = '<div class="list-group">';
+    performers.forEach((performer, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${medal} ${performer.name}</strong><br>
+                    <small class="text-muted">${performer.class_name}</small>
+                </div>
+                <span class="badge bg-success">${performer.attendance_rate}%</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
 }
 
-function exportUserReport() {
-    // This would typically call an API endpoint to generate a user report
-    alert('User report export functionality would be implemented here');
+function updatePredictions(predictions) {
+    const container = document.getElementById('predictionsContainer');
+
+    if (!predictions) {
+        container.innerHTML = '<div class="alert alert-info">Predictions will be available with more data</div>';
+        return;
+    }
+
+    let html = '<div class="row">';
+
+    // Next week prediction
+    html += `
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6>Next Week Prediction</h6>
+                    <h3 class="text-primary">${predictions.next_week}%</h3>
+                    <small class="text-muted">Expected attendance rate</small>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Risk alerts
+    html += `
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6>At-Risk Students</h6>
+                    <h3 class="text-warning">${predictions.at_risk_count}</h3>
+                    <small class="text-muted">Students with < 70% attendance</small>
+                </div>
+            </div>
+        </div>
+    `;
+
+    html += '</div>';
+
+    // Trend indicators
+    html += '<div class="mt-3">';
+    html += '<h6>Trend Indicators:</h6>';
+    html += '<div class="row">';
+
+    const trends = predictions.trends || [];
+    trends.forEach(trend => {
+        const trendClass = trend.direction === 'up' ? 'success' : trend.direction === 'down' ? 'danger' : 'secondary';
+        const trendIcon = trend.direction === 'up' ? 'fas fa-arrow-up' : trend.direction === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus';
+
+        html += `
+            <div class="col-md-4">
+                <div class="alert alert-${trendClass}">
+                    <i class="${trendIcon}"></i> ${trend.metric}: ${trend.change > 0 ? '+' : ''}${trend.change}%
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div></div>';
+
+    container.innerHTML = html;
+
+    // Update trend analysis chart
+    updateTrendAnalysisChart(predictions.trend_data);
 }
 
-function exportClassReport() {
-    // This would typically call an API endpoint to generate a class report
-    alert('Class report export functionality would be implemented here');
+function updateTrendAnalysisChart(trendData) {
+    if (!trendData || !trendData.labels) return;
+
+    if (window.trendAnalysisChart) {
+        window.trendAnalysisChart.destroy();
+    }
+
+    const ctx = document.getElementById('trendAnalysisChart').getContext('2d');
+    window.trendAnalysisChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData.labels,
+            datasets: [{
+                label: 'Actual Attendance',
+                data: trendData.actual,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Predicted Trend',
+                data: trendData.predicted,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                borderDash: [5, 5],
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
 }
 
-// Load analytics on page load
-document.addEventListener('DOMContentLoaded', loadAnalytics);
+function updateAcademicCorrelation(correlationData) {
+    if (!correlationData) return;
+
+    // Update correlation coefficient
+    document.getElementById('correlationCoeff').textContent = correlationData.coefficient.toFixed(2);
+
+    // Create scatter plot
+    if (window.academicCorrelationChart) {
+        window.academicCorrelationChart.destroy();
+    }
+
+    const ctx = document.getElementById('academicCorrelationChart').getContext('2d');
+    window.academicCorrelationChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Attendance vs Grades',
+                data: correlationData.points,
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: '#28a745',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Attendance Rate (%)'
+                    },
+                    min: 0,
+                    max: 100
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Grade Average (%)'
+                    },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function updatePerformanceInsights(insights) {
+    const container = document.getElementById('performanceInsights');
+
+    if (!insights) {
+        container.innerHTML = '<div class="alert alert-info">Performance insights will be available with academic data integration</div>';
+        return;
+    }
+
+    let html = '<div class="list-group">';
+
+    insights.forEach(insight => {
+        const badgeClass = insight.type === 'positive' ? 'success' : insight.type === 'warning' ? 'warning' : 'info';
+        html += `
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${insight.title}</strong><br>
+                        <small class="text-muted">${insight.description}</small>
+                    </div>
+                    <span class="badge bg-${badgeClass}">${insight.impact}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+    let html = '<div class="list-group">';
+    performers.forEach((performer, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-bold">${medal} ${performer.name}</span><br>
+                    <small class="text-muted">${performer.class_name}</small>
+                </div>
+                <span class="badge bg-success">${performer.attendance_rate}%</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
+}
+
+function updateDetailedReport(reportData) {
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = '';
+
+    if (!reportData || reportData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No data available</td></tr>';
+        return;
+    }
+
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.date}</td>
+            <td>${row.class_name}</td>
+            <td><span class="badge bg-success">${row.present}</span></td>
+            <td><span class="badge bg-warning">${row.late}</span></td>
+            <td><span class="badge bg-danger">${row.absent}</span></td>
+            <td>${row.recognition_rate ? row.recognition_rate.toFixed(1) + '%' : 'N/A'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-info" onclick="viewSessionDetails(${row.session_id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function refreshAnalytics() {
+    loadAnalyticsData();
+    showToast('Analytics refreshed!', 'success');
+}
+
+function exportReport(format) {
+    const timeRange = document.getElementById('timeRange').value;
+
+    showToast(`Exporting ${format.toUpperCase()} report...`, 'info');
+
+    fetch(`/api/analytics/export?format=${format}&days=${timeRange}`, {
+        credentials: 'include'
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            throw new Error('Export failed');
+        }
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_report_${new Date().toISOString().split('T')[0]}.${format}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showToast(`${format.toUpperCase()} report exported successfully!`, 'success');
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        showToast('Failed to export report', 'error');
+    });
+}
+
+function viewSessionDetails(sessionId) {
+    // This would open a modal with session details
+    showToast('Session details feature coming soon!', 'info');
+}
 </script>
 {% endblock %}

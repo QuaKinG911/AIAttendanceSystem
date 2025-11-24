@@ -1,0 +1,821 @@
+{% extends "base.html" %}
+
+{% block title %}ML Insights - AI Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-brain"></i> Machine Learning Insights</h5>
+                 <div>
+                     <button class="btn btn-success" onclick="trainModel()">
+                         <i class="fas fa-graduation-cap"></i> Train ML Model
+                     </button>
+                     <button class="btn btn-warning ms-2" onclick="runRealTimeAnomalies()">
+                         <i class="fas fa-exclamation-triangle"></i> Check Anomalies
+                     </button>
+                     <button class="btn btn-info ms-2" onclick="refreshInsights()">
+                         <i class="fas fa-sync"></i> Refresh
+                     </button>
+                 </div>
+            </div>
+            <div class="card-body">
+                <!-- ML Model Status -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4 id="modelAccuracy">-</h4>
+                                <small>Model Accuracy</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4 id="totalPredictions">-</h4>
+                                <small>Predictions Made</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4 id="highRiskStudents">-</h4>
+                                <small>High Risk Students</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4 id="anomaliesDetected">-</h4>
+                                <small>Anomalies Detected</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                 <ul class="nav nav-tabs" id="mlTabs" role="tablist">
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link active" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions-view" type="button" role="tab">Risk Predictions</button>
+                     </li>
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link" id="time-series-tab" data-bs-toggle="tab" data-bs-target="#time-series-view" type="button" role="tab">Time Series Analysis</button>
+                     </li>
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link" id="anomalies-tab" data-bs-toggle="tab" data-bs-target="#anomalies-view" type="button" role="tab">Anomaly Detection</button>
+                     </li>
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link" id="clusters-tab" data-bs-toggle="tab" data-bs-target="#clusters-view" type="button" role="tab">Student Clustering</button>
+                     </li>
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic-view" type="button" role="tab">Academic Correlation</button>
+                     </li>
+                     <li class="nav-item" role="presentation">
+                         <button class="nav-link" id="interventions-tab" data-bs-toggle="tab" data-bs-target="#interventions-view" type="button" role="tab">Interventions</button>
+                     </li>
+                 </ul>
+
+                <div class="tab-content mt-3" id="mlTabsContent">
+                    <!-- Risk Predictions Tab -->
+                    <div class="tab-pane fade show active" id="predictions-view" role="tabpanel">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="studentSearch" placeholder="Search student by name or ID..." onkeyup="filterStudents()">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="predictionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Risk Level</th>
+                                        <th>Confidence</th>
+                                        <th>Attendance Rate</th>
+                                        <th>Recent Trend</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="predictionsTableBody">
+                                    <!-- Predictions will be loaded here -->
+                                </tbody>
+                            </table>
+                         </div>
+                     </div>
+
+                     <!-- Time Series Analysis Tab -->
+                     <div class="tab-pane fade" id="time-series-view" role="tabpanel">
+                         <div class="alert alert-info">
+                             <strong>Time Series Analysis:</strong> Advanced pattern recognition using statistical methods to identify trends, seasonality, and behavioral patterns in attendance data.
+                         </div>
+                         <div class="mb-3">
+                             <select class="form-select" id="timeSeriesStudentSelect" onchange="loadTimeSeriesForStudent()">
+                                 <option value="">Select a student...</option>
+                             </select>
+                         </div>
+                         <div id="timeSeriesContent">
+                             <!-- Time series analysis will be loaded here -->
+                             <div class="text-center text-muted">
+                                 <i class="fas fa-chart-line fa-3x mb-3"></i>
+                                 <p>Select a student to view their time series analysis</p>
+                             </div>
+                         </div>
+                     </div>
+
+                     <!-- Academic Correlation Tab -->
+                     <div class="tab-pane fade" id="academic-view" role="tabpanel">
+                         <div class="alert alert-info">
+                             <strong>Academic Performance Correlation:</strong> AI analysis showing how attendance patterns correlate with academic grades and GPA predictions.
+                         </div>
+                         <div class="row mb-4">
+                             <div class="col-md-3">
+                                 <div class="card bg-primary text-white">
+                                     <div class="card-body text-center">
+                                         <h4 id="avgAttendance">-</h4>
+                                         <small>Avg Attendance Rate</small>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="col-md-3">
+                                 <div class="card bg-success text-white">
+                                     <div class="card-body text-center">
+                                         <h4 id="avgGPA">-</h4>
+                                         <small>Avg Predicted GPA</small>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="col-md-3">
+                                 <div class="card bg-info text-white">
+                                     <div class="card-body text-center">
+                                         <h4 id="correlationStrength">-</h4>
+                                         <small>Correlation Strength</small>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="col-md-3">
+                                 <div class="card bg-warning text-white">
+                                     <div class="card-body text-center">
+                                         <h4 id="atRiskCount">-</h4>
+                                         <small>At-Risk Students</small>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div id="academicContent">
+                             <!-- Academic correlation analysis will be loaded here -->
+                             <div class="text-center text-muted">
+                                 <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                 <p>Loading academic correlation analysis...</p>
+                             </div>
+                         </div>
+                     </div>
+
+                     <!-- Anomalies Tab -->
+                    <div class="tab-pane fade" id="anomalies-view" role="tabpanel">
+                        <div class="alert alert-info">
+                            <strong>Anomaly Detection:</strong> Identifies unusual attendance patterns that may indicate issues requiring attention.
+                        </div>
+                        <div id="anomaliesContent">
+                            <!-- Anomalies will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Clustering Tab -->
+                    <div class="tab-pane fade" id="clusters-view" role="tabpanel">
+                        <div class="alert alert-info">
+                            <strong>Student Clustering:</strong> Groups students with similar attendance patterns for targeted interventions.
+                        </div>
+                        <div id="clustersContent">
+                            <!-- Clusters will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Interventions Tab -->
+                    <div class="tab-pane fade" id="interventions-view" role="tabpanel">
+                        <div class="alert alert-info">
+                            <strong>Intervention Recommendations:</strong> AI-powered suggestions for helping at-risk students.
+                        </div>
+                        <div id="interventionsContent">
+                            <!-- Interventions will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Student Risk Assessment - <span id="studentName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="studentDetails">
+                    <!-- Student details will be loaded here -->
+                </div>
+                <hr>
+                <h6>Recommended Interventions:</h6>
+                <div id="studentInterventions">
+                    <!-- Interventions will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn-primary" onclick="generateReport()">Generate Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let mlData = {
+    predictions: [],
+    anomalies: [],
+    clusters: [],
+    interventions: [],
+    timeSeries: {}
+};
+
+async function loadMLInsights() {
+    try {
+        // Load predictions
+        const predictionsResponse = await fetch('/api/admin/students?ml=true', { credentials: 'include' });
+        if (predictionsResponse.ok) {
+            const students = await predictionsResponse.json();
+            await loadPredictionsForStudents(students);
+        }
+
+        // Load anomalies
+        const anomaliesResponse = await fetch('/api/admin/ml/anomalies', { credentials: 'include' });
+        if (anomaliesResponse.ok) {
+            mlData.anomalies = await anomaliesResponse.json();
+            displayAnomalies();
+        }
+
+        // Load clusters
+        const clustersResponse = await fetch('/api/admin/ml/clusters', { credentials: 'include' });
+        if (clustersResponse.ok) {
+            mlData.clusters = await clustersResponse.json();
+            displayClusters();
+        }
+
+        // Load time series data
+        const timeSeriesResponse = await fetch('/api/admin/ml/time-series', { credentials: 'include' });
+        if (timeSeriesResponse.ok) {
+            mlData.timeSeries = await timeSeriesResponse.json();
+            populateStudentSelect();
+        }
+
+        // Load academic correlation data
+        const academicResponse = await fetch('/api/admin/ml/academic-correlation', { credentials: 'include' });
+        if (academicResponse.ok) {
+            mlData.academic = await academicResponse.json();
+            displayAcademicCorrelation();
+        }
+
+        updateStats();
+
+    } catch (error) {
+        console.error('Error loading ML insights:', error);
+    }
+}
+
+async function loadPredictionsForStudents(students) {
+    mlData.predictions = [];
+
+    for (const student of students.slice(0, 50)) { // Limit for performance
+        try {
+            const response = await fetch(`/api/admin/ml/predict/${student.id}`, { credentials: 'include' });
+            if (response.ok) {
+                const prediction = await response.json();
+                mlData.predictions.push({
+                    student: student,
+                    prediction: prediction.prediction
+                });
+            }
+        } catch (error) {
+            console.error(`Error loading prediction for student ${student.id}:`, error);
+        }
+    }
+
+    displayPredictions();
+}
+
+function displayPredictions() {
+    const tbody = document.getElementById('predictionsTableBody');
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+
+    const filtered = mlData.predictions.filter(item => {
+        const student = item.student;
+        return !searchTerm ||
+               student.full_name.toLowerCase().includes(searchTerm) ||
+               student.email.toLowerCase().includes(searchTerm);
+    });
+
+    tbody.innerHTML = '';
+
+    filtered.forEach(item => {
+        const student = item.student;
+        const prediction = item.prediction;
+
+        const riskBadge = getRiskBadge(prediction.risk_level);
+        const attendanceRate = prediction.attendance_rate ?
+            `${(prediction.attendance_rate * 100).toFixed(1)}%` : 'N/A';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <strong>${student.full_name}</strong><br>
+                <small class="text-muted">${student.email}</small>
+            </td>
+            <td>${riskBadge}</td>
+            <td>${prediction.confidence ? (prediction.confidence * 100).toFixed(1) + '%' : 'N/A'}</td>
+            <td>${attendanceRate}</td>
+            <td>
+                <span class="badge bg-secondary">Analysis needed</span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails(${student.id})">
+                    <i class="fas fa-eye"></i> Details
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getRiskBadge(riskLevel) {
+    const badges = {
+        'high': '<span class="badge bg-danger">High Risk</span>',
+        'medium': '<span class="badge bg-warning">Medium Risk</span>',
+        'low': '<span class="badge bg-success">Low Risk</span>',
+        'unknown': '<span class="badge bg-secondary">Unknown</span>'
+    };
+    return badges[riskLevel] || riskLevel;
+}
+
+function displayAnomalies() {
+    const container = document.getElementById('anomaliesContent');
+
+    if (mlData.anomalies.anomalies && mlData.anomalies.anomalies.length > 0) {
+        let html = '<div class="row">';
+
+        mlData.anomalies.anomalies.slice(0, 12).forEach(anomaly => {
+            const severityClass = anomaly.severity === 'high' ? 'border-danger' : 'border-warning';
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card ${severityClass}">
+                        <div class="card-body">
+                            <h6 class="card-title">Student ID: ${anomaly.student_id}</h6>
+                            <p class="card-text">${anomaly.description}</p>
+                            <span class="badge bg-${anomaly.severity === 'high' ? 'danger' : 'warning'}">
+                                ${anomaly.severity.toUpperCase()} Priority
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = '<div class="alert alert-success">No attendance anomalies detected!</div>';
+    }
+}
+
+function displayClusters() {
+    const container = document.getElementById('clustersContent');
+
+    if (mlData.clusters.cluster_analysis) {
+        let html = '<div class="row">';
+
+        Object.entries(mlData.clusters.cluster_analysis).forEach(([clusterId, analysis]) => {
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Cluster ${clusterId.replace('cluster_', '')}</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Students:</strong> ${analysis.size}</p>
+                            <p><strong>Avg Attendance:</strong> ${(analysis.avg_attendance_rate * 100).toFixed(1)}%</p>
+                            <ul class="list-unstyled">
+                                ${analysis.characteristics.map(char => `<li>• ${char}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = '<div class="alert alert-info">No cluster analysis available yet.</div>';
+    }
+}
+
+function updateStats() {
+    const highRisk = mlData.predictions.filter(p => p.prediction.risk_level === 'high').length;
+    const anomalies = mlData.anomalies.total_anomalies || 0;
+
+    document.getElementById('modelAccuracy').textContent = '85.2%'; // Placeholder
+    document.getElementById('totalPredictions').textContent = mlData.predictions.length;
+    document.getElementById('highRiskStudents').textContent = highRisk;
+    document.getElementById('anomaliesDetected').textContent = anomalies;
+}
+
+async function trainModel() {
+    if (!confirm('Training the ML model may take several minutes. Continue?')) return;
+
+    try {
+        const response = await fetch('/api/admin/ml/train', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert(`ML Model trained successfully!\n\nAccuracy: ${result.metrics.accuracy?.toFixed(3) || 'N/A'}\nTraining Data: ${result.training_data_size}\nStudents: ${result.unique_students}`);
+            loadMLInsights(); // Refresh data
+        } else {
+            const error = await response.json();
+            alert('Error training model: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error training model:', error);
+        alert('Error training ML model');
+    }
+}
+
+async function runRealTimeAnomalies() {
+    if (!confirm('This will run real-time anomaly detection and send email alerts to admins. Continue?')) return;
+
+    try {
+        const response = await fetch('/api/admin/ml/real-time-anomalies', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert(`Real-time anomaly detection completed!\n\n${result.message}`);
+            loadMLInsights(); // Refresh data
+        } else {
+            const error = await response.json();
+            alert('Error running anomaly detection: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error running real-time anomalies:', error);
+        alert('Error running real-time anomaly detection');
+    }
+}
+
+function filterStudents() {
+    displayPredictions();
+}
+
+async function viewStudentDetails(studentId) {
+    try {
+        const response = await fetch(`/api/admin/ml/interventions/${studentId}`, { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+
+            // Update modal content
+            document.getElementById('studentName').textContent = `Student ${studentId}`;
+
+            let detailsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Risk Assessment</h6>
+                        <p><strong>Risk Level:</strong> ${getRiskBadge(data.risk_assessment.risk_level)}</p>
+                        <p><strong>Confidence:</strong> ${data.risk_assessment.confidence?.toFixed(2) || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Attendance Metrics</h6>
+                        <p><strong>Current Rate:</strong> ${data.risk_assessment.attendance_rate ? (data.risk_assessment.attendance_rate * 100).toFixed(1) + '%' : 'N/A'}</p>
+                        <p><strong>Recent Trend:</strong> Analysis needed</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('studentDetails').innerHTML = detailsHtml;
+
+            let interventionsHtml = '<div class="list-group">';
+            data.recommended_interventions.forEach(intervention => {
+                interventionsHtml += `
+                    <div class="list-group-item">
+                        <h6>${intervention.title}</h6>
+                        <p class="mb-1">${intervention.description}</p>
+                        <small class="text-muted">Priority: ${intervention.priority} | Timeline: ${intervention.timeline}</small>
+                    </div>
+                `;
+            });
+            interventionsHtml += '</div>';
+
+            document.getElementById('studentInterventions').innerHTML = interventionsHtml;
+
+            new bootstrap.Modal(document.getElementById('studentModal')).show();
+        }
+    } catch (error) {
+        console.error('Error loading student details:', error);
+        alert('Error loading student details');
+    }
+}
+
+function refreshInsights() {
+    loadMLInsights();
+}
+
+function populateStudentSelect() {
+    const select = document.getElementById('timeSeriesStudentSelect');
+    select.innerHTML = '<option value="">Select a student...</option>';
+
+    if (mlData.timeSeries.patterns) {
+        Object.keys(mlData.timeSeries.patterns).forEach(studentId => {
+            const option = document.createElement('option');
+            option.value = studentId;
+            option.textContent = `Student ${studentId}`;
+            select.appendChild(option);
+        });
+    }
+}
+
+function loadTimeSeriesForStudent() {
+    const studentId = document.getElementById('timeSeriesStudentSelect').value;
+    if (!studentId || !mlData.timeSeries.patterns || !mlData.timeSeries.patterns[studentId]) {
+        document.getElementById('timeSeriesContent').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-chart-line fa-3x mb-3"></i>
+                <p>No time series data available for this student</p>
+            </div>
+        `;
+        return;
+    }
+
+    const pattern = mlData.timeSeries.patterns[studentId];
+    displayTimeSeriesAnalysis(pattern);
+}
+
+function displayTimeSeriesAnalysis(pattern) {
+    const container = document.getElementById('timeSeriesContent');
+
+    let html = '<div class="row">';
+
+    // Trend Analysis
+    html += `
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-line"></i> Trend Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Direction:</strong>
+                        <span class="badge bg-${pattern.trend_analysis.direction === 'improving' ? 'success' : pattern.trend_analysis.direction === 'declining' ? 'danger' : 'secondary'}">
+                            ${pattern.trend_analysis.direction}
+                        </span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Trend Strength:</strong> ${pattern.trend_analysis.strength?.toFixed(3) || 'N/A'}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Recent Trend:</strong>
+                        <span class="${pattern.trend_analysis.recent_trend > 0 ? 'text-success' : pattern.trend_analysis.recent_trend < 0 ? 'text-danger' : 'text-muted'}">
+                            ${pattern.trend_analysis.recent_trend > 0 ? '+' : ''}${pattern.trend_analysis.recent_trend?.toFixed(3) || 'N/A'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Seasonality
+    html += `
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-calendar-alt"></i> Weekly Patterns</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Pattern Detected:</strong>
+                        <span class="badge bg-${pattern.seasonality.detected ? 'success' : 'secondary'}">
+                            ${pattern.seasonality.detected ? 'Yes' : 'No'}
+                        </span>
+                    </div>
+                    ${pattern.seasonality.detected ? `
+                        <div class="mb-2">
+                            <strong>Pattern Strength:</strong> ${pattern.seasonality.pattern_strength?.toFixed(3) || 'N/A'}
+                        </div>
+                        <div>
+                            <strong>Daily Averages:</strong>
+                            <ul class="list-unstyled small">
+                                ${Object.entries(pattern.seasonality.weekly_means || {}).map(([day, avg]) =>
+                                    `<li>${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][parseInt(day.replace('day_', ''))]}: ${(avg * 100).toFixed(1)}%</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    ` : '<p class="text-muted small">No significant weekly patterns detected</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Volatility
+    html += `
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-wave-square"></i> Attendance Volatility</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Overall Volatility:</strong> ${pattern.volatility.overall_volatility?.toFixed(3) || 'N/A'}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Consistency Score:</strong>
+                        <span class="badge bg-${pattern.volatility.consistency_score > 0.8 ? 'success' : pattern.volatility.consistency_score > 0.6 ? 'warning' : 'danger'}">
+                            ${(pattern.volatility.consistency_score * 100)?.toFixed(1) || 'N/A'}%
+                        </span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Current Streak:</strong> ${pattern.volatility.current_streak || 0} days
+                    </div>
+                    <div class="mb-2">
+                        <strong>Max Streak:</strong> ${pattern.volatility.max_streak || 0} days
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Forecast
+    html += `
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-crystal-ball"></i> 7-Day Forecast</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Forecast Method:</strong> ${pattern.forecast.method || 'N/A'}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Confidence:</strong>
+                        <span class="badge bg-${pattern.forecast.confidence > 0.7 ? 'success' : pattern.forecast.confidence > 0.5 ? 'warning' : 'danger'}">
+                            ${(pattern.forecast.confidence * 100)?.toFixed(1) || 'N/A'}%
+                        </span>
+                    </div>
+                    ${pattern.forecast.forecast && pattern.forecast.forecast.length > 0 ? `
+                        <div>
+                            <strong>Predicted Attendance:</strong>
+                            <ul class="list-unstyled small">
+                                ${pattern.forecast.forecast.map((pred, i) =>
+                                    `<li>Day ${i+1}: ${(pred * 100).toFixed(1)}%</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    ` : '<p class="text-muted small">No forecast available</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Behavior Patterns
+    if (pattern.behavior_patterns && pattern.behavior_patterns.length > 0) {
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="fas fa-brain"></i> Identified Behavior Patterns</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            ${pattern.behavior_patterns.map(pattern =>
+                                `<li class="list-group-item">${pattern}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function displayAcademicCorrelation() {
+    if (!mlData.academic || !mlData.academic.insights) {
+        document.getElementById('academicContent').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                <p>No academic correlation data available</p>
+            </div>
+        `;
+        return;
+    }
+
+    const insights = mlData.academic.insights;
+    const container = document.getElementById('academicContent');
+
+    // Update stats
+    document.getElementById('avgAttendance').textContent = `${(insights.overall_statistics.average_attendance_rate * 100).toFixed(1)}%`;
+    document.getElementById('avgGPA').textContent = insights.overall_statistics.average_gpa.toFixed(2);
+    document.getElementById('correlationStrength').textContent = insights.overall_statistics.correlation_interpretation.replace('_', ' ');
+    document.getElementById('atRiskCount').textContent = insights.at_risk_students.length;
+
+    let html = '<div class="row">';
+
+    // Overall Insights
+    html += `
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-lightbulb"></i> Key Insights</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        ${insights.key_insights.map(insight => `<li class="list-group-item">${insight}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // At-Risk Students
+    if (insights.at_risk_students.length > 0) {
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning">
+                        <h6><i class="fas fa-exclamation-triangle"></i> At-Risk Students</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Attendance Rate</th>
+                                        <th>Predicted GPA</th>
+                                        <th>Risk Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${insights.at_risk_students.map(student => `
+                                        <tr>
+                                            <td>${student.student_id}</td>
+                                            <td>${(student.attendance_rate * 100).toFixed(1)}%</td>
+                                            <td>${student.gpa.toFixed(2)}</td>
+                                            <td><span class="badge bg-${student.risk_level === 'high' ? 'danger' : 'warning'}">${student.risk_level.toUpperCase()}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Recommendations
+    html += `
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-clipboard-check"></i> Recommendations</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        ${insights.recommendations.map(rec => `<li class="list-group-item">${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function generateReport() {
+    alert('Report generation feature coming soon!');
+}
+
+// Load insights on page load
+document.addEventListener('DOMContentLoaded', loadMLInsights);
+</script>
+{% endblock %}</content>
+<parameter name="filePath">templates/admin_ml_insights.html

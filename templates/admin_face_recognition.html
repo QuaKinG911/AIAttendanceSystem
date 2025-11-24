@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Face Recognition Settings - AI Attendance System{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Face Recognition Settings</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-cogs"></i> Face Recognition Settings</h2>
+        <p class="text-muted">Configure face recognition parameters and test accuracy</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sliders-h"></i> Recognition Parameters</h5>
+            </div>
+            <div class="card-body">
+                <form id="recognitionSettingsForm">
+                    <div class="mb-3">
+                        <label for="tolerance" class="form-label">Face Recognition Tolerance</label>
+                        <input type="range" class="form-range" id="tolerance" min="0.1" max="1.0" step="0.05" value="0.4">
+                        <small class="form-text text-muted">Lower values = stricter matching (0.1-1.0)</small>
+                        <div class="text-center mt-1">
+                            <span id="toleranceValue" class="badge bg-primary">0.4</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confidenceThreshold" class="form-label">Minimum Confidence Threshold</label>
+                        <input type="range" class="form-range" id="confidenceThreshold" min="0.1" max="1.0" step="0.05" value="0.6">
+                        <small class="form-text text-muted">Minimum confidence required for recognition (0.1-1.0)</small>
+                        <div class="text-center mt-1">
+                            <span id="confidenceValue" class="badge bg-success">0.6</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="qualityThreshold" class="form-label">Face Quality Threshold</label>
+                        <input type="range" class="form-range" id="qualityThreshold" min="0.1" max="1.0" step="0.05" value="0.4">
+                        <small class="form-text text-muted">Minimum quality score required (0.1-1.0)</small>
+                        <div class="text-center mt-1">
+                            <span id="qualityValue" class="badge bg-warning">0.4</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-flask"></i> Test Recognition</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="testImage" class="form-label">Upload Test Image</label>
+                    <input type="file" class="form-control" id="testImage" accept="image/*" onchange="previewImage()">
+                </div>
+
+                <div id="imagePreview" class="text-center mb-3" style="display: none;">
+                    <img id="previewImg" src="" alt="Test image" class="img-fluid rounded" style="max-height: 200px;">
+                </div>
+
+                <button type="button" class="btn btn-success" onclick="testRecognition()" id="testBtn" disabled>
+                    <i class="fas fa-search"></i> Test Recognition
+                </button>
+
+                <div id="testResults" class="mt-3" style="display: none;">
+                    <h6>Test Results:</h6>
+                    <div id="resultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Recognition Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div id="statsContainer">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentSettings = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+    loadStatistics();
+
+    // Update value displays when sliders change
+    document.getElementById('tolerance').addEventListener('input', function() {
+        document.getElementById('toleranceValue').textContent = this.value;
+    });
+
+    document.getElementById('confidenceThreshold').addEventListener('input', function() {
+        document.getElementById('confidenceValue').textContent = this.value;
+    });
+
+    document.getElementById('qualityThreshold').addEventListener('input', function() {
+        document.getElementById('qualityValue').textContent = this.value;
+    });
+});
+
+function loadSettings() {
+    fetch('/api/admin/face-recognition/settings', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentSettings = data.settings;
+                document.getElementById('tolerance').value = data.settings.tolerance || 0.4;
+                document.getElementById('confidenceThreshold').value = data.settings.confidence_threshold || 0.6;
+                document.getElementById('qualityThreshold').value = data.settings.quality_threshold || 0.4;
+
+                // Update display values
+                document.getElementById('toleranceValue').textContent = document.getElementById('tolerance').value;
+                document.getElementById('confidenceValue').textContent = document.getElementById('confidenceThreshold').value;
+                document.getElementById('qualityValue').textContent = document.getElementById('qualityThreshold').value;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+            showToast('Failed to load settings', 'error');
+        });
+}
+
+function saveSettings() {
+    const settings = {
+        tolerance: parseFloat(document.getElementById('tolerance').value),
+        confidence_threshold: parseFloat(document.getElementById('confidenceThreshold').value),
+        quality_threshold: parseFloat(document.getElementById('qualityThreshold').value)
+    };
+
+    fetch('/api/admin/face-recognition/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Settings saved successfully!', 'success');
+            currentSettings = settings;
+        } else {
+            showToast('Failed to save settings', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showToast('Error saving settings', 'error');
+    });
+}
+
+function previewImage() {
+    const file = document.getElementById('testImage').files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+            document.getElementById('testBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function testRecognition() {
+    const file = document.getElementById('testImage').files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    document.getElementById('testBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    document.getElementById('testBtn').disabled = true;
+
+    fetch('/api/admin/face-recognition/test', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('testBtn').innerHTML = '<i class="fas fa-search"></i> Test Recognition';
+        document.getElementById('testBtn').disabled = false;
+
+        if (data.success) {
+            displayTestResults(data.results);
+        } else {
+            showToast('Test failed: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error testing recognition:', error);
+        document.getElementById('testBtn').innerHTML = '<i class="fas fa-search"></i> Test Recognition';
+        document.getElementById('testBtn').disabled = false;
+        showToast('Error testing recognition', 'error');
+    });
+}
+
+function displayTestResults(results) {
+    const container = document.getElementById('resultsContent');
+
+    let html = '<div class="row">';
+
+    // Quality metrics
+    html += '<div class="col-md-6">';
+    html += '<h6>Image Quality:</h6>';
+    html += '<ul class="list-group">';
+    Object.entries(results.quality).forEach(([key, value]) => {
+        const score = typeof value === 'number' ? value.toFixed(2) : value;
+        const badgeClass = value >= 0.7 ? 'success' : value >= 0.4 ? 'warning' : 'danger';
+        html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+            ${key.charAt(0).toUpperCase() + key.slice(1)}
+            <span class="badge bg-${badgeClass}">${score}</span>
+        </li>`;
+    });
+    html += '</ul></div>';
+
+    // Recognition results
+    html += '<div class="col-md-6">';
+    html += '<h6>Recognition Results:</h6>';
+    if (results.recognition.student_id) {
+        html += `<div class="alert alert-success">
+            <strong>Recognized:</strong> ${results.recognition.student_name} (${results.recognition.student_id})<br>
+            <strong>Confidence:</strong> ${(results.recognition.confidence * 100).toFixed(1)}%
+        </div>`;
+    } else {
+        html += '<div class="alert alert-warning">No face recognized</div>';
+    }
+    html += '</div></div>';
+
+    container.innerHTML = html;
+    document.getElementById('testResults').style.display = 'block';
+}
+
+function loadStatistics() {
+    fetch('/api/admin/face-recognition/stats', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayStatistics(data.stats);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading statistics:', error);
+            document.getElementById('statsContainer').innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+        });
+}
+
+function displayStatistics(stats) {
+    const container = document.getElementById('statsContainer');
+
+    let html = '<div class="row text-center">';
+    html += `<div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h3>${stats.total_faces || 0}</h3>
+                <p>Total Faces</p>
+            </div>
+        </div>
+    </div>`;
+
+    html += `<div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h3>${stats.avg_confidence ? (stats.avg_confidence * 100).toFixed(1) + '%' : 'N/A'}</h3>
+                <p>Avg Confidence</p>
+            </div>
+        </div>
+    </div>`;
+
+    html += `<div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h3>${stats.success_rate ? (stats.success_rate * 100).toFixed(1) + '%' : 'N/A'}</h3>
+                <p>Success Rate</p>
+            </div>
+        </div>
+    </div>`;
+
+    html += `<div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h3>${stats.last_updated || 'Never'}</h3>
+                <p>Last Updated</p>
+            </div>
+        </div>
+    </div>`;
+
+    html += '</div>';
+
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

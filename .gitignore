@@ -4,16 +4,20 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+*.so
 
 # Virtual environments
 .venv/
 .venv311/
 env/
 venv/
+ENV/
 
 # Logs
 *.log
 attendance_system.log
+flask.log
+server.log
 
 # Data (large files)
 data/face_encodings/face_database.pkl
@@ -22,7 +26,48 @@ data/students/dataset_report_*.txt
 # Models (large files)
 models/*.pt
 models/*.onnx
+models/*.pth
+
+# Database
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Backups
+.cleanup_backup/
+backups/*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+.directory
+
+# Environment
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Flask
+instance/
+.webassets-cache
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+build/
+dist/
+*.egg-info/

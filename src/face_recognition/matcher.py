@@ -2,18 +2,156 @@ import cv2
 import numpy as np
 import pickle
 import os
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
+from pathlib import Path
+
+try:
+    import face_recognition
+    FACE_RECOGNITION_AVAILABLE = True
+    logging.info("face_recognition library loaded successfully")
+except ImportError:
+    face_recognition = None
+    FACE_RECOGNITION_AVAILABLE = False
+    logging.warning("face_recognition not available. Using basic features only.")
 
 class FaceMatcher:
-    def __init__(self, tolerance: float = 0.4):  # Lower tolerance for better recognition
+    def __init__(self, tolerance: float = 0.4, confidence_threshold: float = 0.6):
         self.tolerance = tolerance
+        self.confidence_threshold = confidence_threshold
         self.known_face_encodings = []
         self.known_face_ids = []
         self.known_face_names = []
-        logging.info(f"Face Matcher initialized with tolerance: {tolerance}")
-    
+        self.known_face_metadata = []  # Store additional metadata
+
+        logging.info(f"Face Matcher initialized with tolerance: {tolerance}, confidence_threshold: {confidence_threshold}")
+
+    def validate_face_quality(self, face_image: np.ndarray) -> Dict[str, Any]:
+        """Validate face image quality for recognition"""
+        quality_metrics = {
+            'brightness': self._check_brightness(face_image),
+            'focus': self._check_focus(face_image),
+            'angle': self._check_face_angle(face_image),
+            'size': self._check_face_size(face_image),
+            'pose': self._check_face_pose(face_image),
+            'overall_score': 0.0
+        }
+
+        # Calculate overall quality score (0-1, higher is better)
+        quality_metrics['overall_score'] = (
+            quality_metrics['brightness'] * 0.2 +
+            quality_metrics['focus'] * 0.2 +
+            quality_metrics['angle'] * 0.15 +
+            quality_metrics['size'] * 0.15 +
+            quality_metrics['pose'] * 0.3
+        )
+
+        return quality_metrics
+
+    def _check_brightness(self, image: np.ndarray) -> float:
+        """Check image brightness (0-1, higher is better)"""
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            brightness = np.mean(gray) / 255.0
+
+            # Optimal brightness is around 0.4-0.7
+            if 0.3 <= brightness <= 0.8:
+                return 1.0
+            elif brightness < 0.2 or brightness > 0.9:
+                return 0.2
+            else:
+                return 0.7
+        except:
+            return 0.5
+
+    def _check_focus(self, image: np.ndarray) -> float:
+        """Check image focus using Laplacian variance (0-1, higher is better)"""
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+
+            # Normalize focus score (higher variance = sharper image)
+            focus_score = min(1.0, laplacian_var / 500.0)
+            return focus_score
+        except:
+            return 0.5
+
+    def _check_face_angle(self, face_image: np.ndarray) -> float:
+        """Check face angle using basic heuristics (0-1, higher is better)"""
+        try:
+            # Simple check: if face is too skewed, it might be at an angle
+            height, width = face_image.shape[:2]
+
+            # Check aspect ratio (faces should be roughly square)
+            aspect_ratio = width / height
+            if 0.7 <= aspect_ratio <= 1.4:
+                return 1.0
+            else:
+                return 0.5
+        except:
+            return 0.5
+
+    def _check_face_size(self, face_image: np.ndarray) -> float:
+        """Check if face is large enough for recognition (0-1, higher is better)"""
+        try:
+            height, width = face_image.shape[:2]
+            min_dimension = min(height, width)
+
+            # Faces should be at least 64x64 pixels for good recognition
+            if min_dimension >= 100:
+                return 1.0
+            elif min_dimension >= 64:
+                return 0.7
+            else:
+                return 0.3
+        except:
+            return 0.5
+
+    def _check_face_pose(self, face_image: np.ndarray) -> float:
+        """Check face pose using facial landmarks (0-1, higher is better)"""
+        try:
+            if not FACE_RECOGNITION_AVAILABLE:
+                return 0.5  # Neutral score if landmarks not available
+
+            # Convert to RGB for face_recognition
+            rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
+
+            # Get face landmarks
+            try:
+                face_landmarks_list = face_recognition.face_landmarks(rgb_image)  # type: ignore
+            except AttributeError:
+                return 0.5  # Fallback if landmarks not available
+
+            if not face_landmarks_list:
+                return 0.3  # No face detected
+
+            landmarks = face_landmarks_list[0]
+
+            # Calculate pose estimation using eye and nose positions
+            left_eye = np.mean(landmarks['left_eye'], axis=0)
+            right_eye = np.mean(landmarks['right_eye'], axis=0)
+            nose = np.mean(landmarks['nose_bridge'], axis=0)
+
+            # Calculate eye line angle
+            eye_vector = right_eye - left_eye
+            eye_angle = np.arctan2(eye_vector[1], eye_vector[0]) * 180 / np.pi
+
+            # Calculate nose position relative to eyes
+            eye_center = (left_eye + right_eye) / 2
+            nose_offset = nose - eye_center
+
+            # Ideal pose: eyes horizontal, nose centered
+            angle_score = max(0.0, 1.0 - abs(eye_angle) / 30.0)  # Within 30 degrees
+            center_score = max(0.0, 1.0 - abs(nose_offset[0]) / 20.0)  # Within 20 pixels
+
+            pose_score = (angle_score + center_score) / 2.0
+            return pose_score
+
+        except Exception as e:
+            logging.error(f"Error checking face pose: {e}")
+            return 0.5
+
     def load_known_faces(self, database_path: str):
         """Load known face encodings from database"""
         try:
@@ -47,24 +185,32 @@ class FaceMatcher:
     def extract_face_features(self, face_image: np.ndarray) -> Optional[np.ndarray]:
         """Extract face features from face image"""
         try:
-            # Try to use face_recognition library if available
-            try:
-                import face_recognition
+            # Validate face quality first
+            quality = self.validate_face_quality(face_image)
+            if quality['overall_score'] < 0.4:
+                logging.warning(f"Poor face quality detected: {quality}")
+                return None
 
-                # Convert BGR to RGB
-                rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
+            # Method 1: Try face_recognition library
+            if FACE_RECOGNITION_AVAILABLE and face_recognition is not None:
+                try:
+                    # Convert BGR to RGB
+                    rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
 
-                # Extract face encoding
-                face_encodings = face_recognition.face_encodings(rgb_image)
+                    # Extract face encoding
+                    encodings = face_recognition.face_encodings(rgb_image)
 
-                if len(face_encodings) > 0:
-                    return face_encodings[0]
-                else:
-                    logging.warning("No face encoding found in the image - skipping recognition")
-                    return None
-            except ImportError:
-                logging.warning("face_recognition library not available. Using simple features.")
-                return self._extract_simple_features(face_image)
+                    if len(encodings) > 0:
+                        logging.debug("Extracted features using face_recognition library")
+                        return encodings[0]
+                    else:
+                        logging.warning("No face encoding found using face_recognition")
+                except Exception as e:
+                    logging.error(f"face_recognition extraction failed: {e}")
+
+            # Method 2: Fallback to simple features
+            logging.warning("Using simple feature extraction as fallback")
+            return self._extract_simple_features(face_image)
 
         except Exception as e:
             logging.error(f"Error extracting face features: {e}")
@@ -105,55 +251,47 @@ class FaceMatcher:
             return None, None, 0.0
 
         try:
-            # Try to use face_recognition library if available
-            try:
-                import face_recognition
-                
-                # Calculate distances
-                distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-                
-                # Find best match
-                best_match_index = np.argmin(distances)
-                min_distance = distances[best_match_index]
-                
-                # Convert distance to confidence (lower distance = higher confidence)
-                confidence = 1.0 - min_distance
+            # Method 1: face_recognition distance-based matching
+            if FACE_RECOGNITION_AVAILABLE and face_recognition is not None:
+                try:
+                    distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                    best_match_index = np.argmin(distances)
+                    min_distance = distances[best_match_index]
 
-                # Debug logging
-                logging.debug(f"Face recognition: min_distance={min_distance:.3f}, tolerance={self.tolerance}, confidence={confidence:.3f}")
+                    # Convert distance to confidence (lower distance = higher confidence)
+                    confidence = max(0.0, 1.0 - min_distance)
 
-                if min_distance <= self.tolerance:
-                    student_id = self.known_face_ids[best_match_index]
-                    student_name = self.known_face_names[best_match_index]
-                    logging.info(f"Face recognized: {student_name} ({student_id}) with confidence {confidence:.3f}")
-                    return student_id, student_name, confidence
-                else:
-                    logging.debug(f"Face not recognized: distance {min_distance:.3f} > tolerance {self.tolerance}")
-                    return None, None, confidence
-                    
-            except ImportError:
-                # Fallback: use cosine similarity
-                similarities = []
-                for known_encoding in self.known_face_encodings:
-                    if len(face_encoding) == len(known_encoding):
-                        similarity = cosine_similarity([face_encoding], [known_encoding])[0][0]
-                        similarities.append(float(similarity))
-                    else:
-                        similarities.append(0.0)
-                
-                if similarities:
-                    best_match_index = np.argmax(similarities)
-                    max_similarity = similarities[best_match_index]
-                    
-                    if max_similarity >= 0.7:  # Higher threshold for simple features
+                    if min_distance <= self.tolerance:
                         student_id = self.known_face_ids[best_match_index]
                         student_name = self.known_face_names[best_match_index]
-                        return student_id, student_name, max_similarity
+                        logging.info(f"Face recognized: {student_name} ({student_id}) with confidence {confidence:.3f}")
+                        return student_id, student_name, confidence
                     else:
-                        return None, None, max_similarity
+                        logging.debug(f"Face not recognized: distance {min_distance:.3f} > tolerance {self.tolerance}")
+                        return None, None, confidence
+
+                except Exception as e:
+                    logging.error(f"face_recognition matching failed: {e}")
+
+            # Method 2: Fallback cosine similarity
+            similarities = []
+            for i, known_encoding in enumerate(self.known_face_encodings):
+                if len(face_encoding) == len(known_encoding):
+                    similarity = cosine_similarity([face_encoding], [known_encoding])[0][0]
+                    similarities.append((i, similarity))
+
+            if similarities:
+                best_match_index, max_similarity = max(similarities, key=lambda x: x[1])
+
+                if max_similarity >= self.confidence_threshold:
+                    student_id = self.known_face_ids[best_match_index]
+                    student_name = self.known_face_names[best_match_index]
+                    return student_id, student_name, max_similarity
                 else:
-                    return None, None, 0.0
-                    
+                    return None, None, max_similarity
+
+            return None, None, 0.0
+
         except Exception as e:
             logging.error(f"Error recognizing face: {e}")
             return None, None, 0.0

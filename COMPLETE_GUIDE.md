@@ -74,7 +74,6 @@ cd ai-attendance-system
 ./setup.sh
 
 # This will:
-# - Create virtual environment
 # - Install dependencies
 # - Download models
 # - Create directories
@@ -83,15 +82,8 @@ cd ai-attendance-system
 
 ### **Option 2: Manual Setup**
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install basic dependencies
-pip install opencv-python numpy scikit-learn
-
-# Install advanced dependencies (optional)
-pip install ultralytics torch face-recognition mediapipe sqlalchemy
+# Install dependencies
+pip install -r requirements.txt
 
 # Create directories
 mkdir -p data/{students,attendance,uncertain_matches}
@@ -146,28 +138,17 @@ data/
 
 ## 🚀 **Running the System**
 
-### **Option 1: Simulation (No Camera Required)**
+### **1. Web Application**
+Start the web dashboard for admin, teachers, and students:
 ```bash
-python3 simulation.py
-# Demonstrates system with simulated faces
-# Generates sample attendance reports
+python3 app.py
 ```
+Access at `http://localhost:5000`.
 
-### **Option 2: Full System with Camera**
+### **2. Camera Attendance**
+Start the camera system to record attendance:
 ```bash
-# After creating dataset
-python3 main.py
-# Controls:
-# q - Quit
-# s - Save attendance
-# r - Reset session
-```
-
-### **Option 3: Production Mode**
-```bash
-# Start with configuration
-./start.sh
-# Uses config/config.json settings
+python3 run_camera.py
 ```
 
 ### **Session Workflow**
@@ -226,8 +207,7 @@ python3 main.py
 python3 -c "import cv2; print([i for i in range(10) if cv2.VideoCapture(i).read()[0]])"
 
 # Try different camera indices
-python3 main.py --camera 1
-python3 main.py --camera 2
+# Update config.json or environment variable ATTENDANCE_CAMERA_SOURCE
 ```
 
 #### **Face Detection Not Working**
@@ -255,30 +235,8 @@ wget -O haarcascade_frontalface_default.xml \
 ### **Debug Mode**
 ```bash
 # Enable debug logging
-export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
-python3 main.py --debug
-```
-
-### **Testing Components**
-```bash
-# Test face detection
-python3 -c "
-import cv2
-import sys
-sys.path.append('src')
-from face_detection.yolo_detector import YOLOFaceDetector
-detector = YOLOFaceDetector()
-print('Face detection working')
-"
-
-# Test face recognition
-python3 -c "
-import sys
-sys.path.append('src')
-from face_recognition.matcher import FaceMatcher
-matcher = FaceMatcher()
-print('Face recognition working')
-"
+export ATTENDANCE_LOG_LEVEL=DEBUG
+python3 app.py
 ```
 
 ---
@@ -299,24 +257,6 @@ print('Face recognition working')
 
 ---
 
-## 🎯 **Best Practices**
-
-### **For Best Results**
-1. **Good Lighting**: Ensure even, bright lighting
-2. **Camera Position**: Front-facing, eye level
-3. **Student Photos**: High-quality, recent photos
-4. **Regular Updates**: Update student database regularly
-5. **Testing**: Test system before actual use
-
-### **Privacy Considerations**
-- Store data securely
-- Follow privacy regulations
-- Obtain consent from students
-- Provide opt-out options
-- Regular data cleanup
-
----
-
 ## 📞 **Support**
 
 ### **Getting Help**
@@ -333,4 +273,4 @@ print('Face recognition working')
 
 ---
 
-This comprehensive guide should help you understand, install, configure, and run the AI Attendance System effectively for your class! 🎓
+This comprehensive guide should help you understand, install, configure, and run the AI Attendance System effectively! 🎓

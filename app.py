@@ -15,6 +15,13 @@ app.register_blueprint(web_admin_bp)
 app.register_blueprint(web_parent_bp)
 app.register_blueprint(web_common_bp)
 
+from flask import send_from_directory
+import os
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(os.path.join(os.getcwd(), 'uploads'), filename)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

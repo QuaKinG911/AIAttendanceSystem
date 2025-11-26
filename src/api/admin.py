@@ -679,19 +679,37 @@ def add_class_session(class_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+from src.models import FaceEncoding
+
+@admin_bp.route('/students/<int:student_id>/photo', methods=['GET'])
 @admin_or_session_required
 def get_student_photo(student_id):
     """Get student photo"""
     try:
         student = User.query.filter_by(id=student_id, role=UserRole.STUDENT).first_or_404()
-
-        # Check if photo exists
-        photo_path = f"data/faces/{student.username}/{student.username}.jpg"
-        if os.path.exists(photo_path):
-            return send_file(photo_path, mimetype='image/jpeg')
+        
+        # Check FaceEncoding for image path
+        encoding = FaceEncoding.query.filter_by(student_id=student.id).first()
+        
+        if encoding and encoding.image_path:
+            # Check if file exists in uploads
+            upload_path = os.path.join(os.getcwd(), 'uploads', encoding.image_path)
+            if os.path.exists(upload_path):
+                return send_file(upload_path, mimetype='image/jpeg')
+        
+        # Fallback to old path or default
+        old_path = f"data/faces/{student.username}/{student.username}.jpg"
+        if os.path.exists(old_path):
+            return send_file(old_path, mimetype='image/jpeg')
+            
+        # Return default avatar (ensure this file exists or return a placeholder)
+        # If static/images/default-avatar.svg doesn't exist, we might want to return a 404 or a generated image
+        # For now, let's try to return a simple placeholder if the file is missing
+        default_path = os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg')
+        if os.path.exists(default_path):
+             return send_file(default_path, mimetype='image/svg+xml')
         else:
-            # Return default avatar
-            return send_file('static/images/default-avatar.svg', mimetype='image/svg+xml')
+            return jsonify({'error': 'Photo not found'}), 404
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

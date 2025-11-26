@@ -42,7 +42,7 @@ def get_classes():
 
     if user.role.value == 'student':
         # For students, return their enrolled classes with today's courses
-        today = datetime.now().weekday() + 1  # Monday = 1, Sunday = 7
+        today = datetime.now().weekday()  # Monday = 0, Sunday = 6
 
         # Get enrolled classes
         enrollments = Enrollment.query.filter_by(student_id=user.id).all()

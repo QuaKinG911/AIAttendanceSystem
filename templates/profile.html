@@ -12,10 +12,31 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        <div class="mb-3 position-relative d-inline-block">
+                            <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-primary text-white"
+                                style="width: 150px; height: 150px;">
+                                {% if face_encoding and face_encoding.image_path %}
+                                <img src="/uploads/{{ face_encoding.image_path }}" class="w-100 h-100"
+                                    style="object-fit: cover;" alt="Profile Picture">
+                                {% else %}
+                                <i class="fas fa-user fa-5x"></i>
+                                {% endif %}
+                            </div>
+
+                            <button
+                                class="btn position-absolute bottom-0 end-0 rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                                style="width: 40px; height: 40px; background-color: white !important; border: 2px solid white; transform: translate(-10%, -10%);"
+                                onclick="document.getElementById('profilePhotoInput').click()" title="Upload Photo">
+                                <i class="fas fa-camera text-dark"></i>
+                            </button>
                         </div>
-                        <h5>{{ user.username }}</h5>
+
+                        <form id="photoUploadForm" enctype="multipart/form-data" style="display: none;">
+                            <input type="file" id="profilePhotoInput" name="photo" accept="image/*"
+                                onchange="uploadProfilePhoto()">
+                        </form>
+
+                        <h5 class="mt-2">{{ user.username }}</h5>
                         <p class="text-muted">{{ user.role.value.title() }}</p>
                     </div>
                     <div class="col-md-8">
@@ -49,19 +70,22 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="current_password" class="form-label">Current Password</label>
-                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                                <input type="password" class="form-control" id="current_password"
+                                    name="current_password" required>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="new_password" class="form-label">New Password</label>
-                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                <input type="password" class="form-control" id="new_password" name="new_password"
+                                    required>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="confirm_password" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                <input type="password" class="form-control" id="confirm_password"
+                                    name="confirm_password" required>
                             </div>
                         </div>
                     </div>
@@ -71,4 +95,38 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function uploadProfilePhoto() {
+        const input = document.getElementById('profilePhotoInput');
+        if (!input.files || !input.files[0]) return;
+
+        const formData = new FormData();
+        formData.append('photo', input.files[0]);
+
+        // Show loading state
+        showToast('Uploading photo...', 'info');
+
+        fetch('/profile/upload-photo', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Profile photo updated successfully', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.error || 'Failed to upload photo', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred during upload', 'error');
+            });
+    }
+</script>
 {% endblock %}

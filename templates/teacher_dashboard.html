@@ -11,6 +11,42 @@
 {% endblock %}
 
 {% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center justify-content-between bg-white">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                    <div>
+                        <h5 class="mb-0 fw-bold">My Teaching Schedule</h5>
+                        <small class="text-muted">Weekly Class Schedule</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 schedule-table" id="teacherScheduleTable"
+                        style="table-layout: fixed;">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th class="py-3 text-muted text-uppercase small fw-bold" style="width: 80px;">Time</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Monday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Tuesday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Wednesday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Thursday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Friday</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherScheduleBody">
+                            <!-- Rows generated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-6">
         <div class="card">
@@ -49,70 +85,171 @@
 {% block extra_scripts %}
 <script>
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadActiveSessions();
-    loadAttendanceAnalytics();
-
-    // Refresh active sessions every 30 seconds
-    setInterval(() => {
+    document.addEventListener('DOMContentLoaded', function () {
         loadActiveSessions();
-    }, 30000);
-});
+        loadAttendanceAnalytics();
 
-function loadActiveSessions() {
-    fetch('/api/attendance/sessions', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 403) {
-                window.location.href = '/login';
-                return [];
-            }
-        })
-        .then(data => {
-            if (data) {
-                displayActiveSessions(data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading sessions:', error);
+        // Refresh active sessions every 30 seconds
+        setInterval(() => {
+            loadActiveSessions();
+        }, 30000);
+
+        // Render Schedule
+        const scheduleData = {{ schedule| tojson | safe
+    }};
+    renderTeacherSchedule(scheduleData);
+    });
+
+    function renderTeacherSchedule(courses) {
+        const tbody = document.getElementById('teacherScheduleBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const timeSlots = [
+            { label: '08:00-08:45', start: ['08:00'], end: ['08:45'] },
+            { label: '08:55-09:40', start: ['08:55'], end: ['09:40'] },
+            { label: '09:55-10:40', start: ['09:55'], end: ['10:40'] },
+            { label: '10:50-11:35', start: ['10:50'], end: ['11:35'] },
+            { label: '11:45-12:30', start: ['11:45'], end: ['12:30'] },
+            { label: '14:00-14:45', start: ['14:00', '14:30'], end: ['14:45', '15:15'] },
+            { label: '14:55-15:40', start: ['14:55', '15:25'], end: ['15:40', '16:10'] },
+            { label: '15:50-16:35', start: ['15:50', '16:20'], end: ['16:35', '17:05'] },
+            { label: '16:45-17:30', start: ['16:45', '17:15'], end: ['17:30', '18:00'] },
+            { label: '17:40-18:25', start: ['17:40', '18:10'], end: ['18:25', '18:55'] },
+            { label: '19:00-19:45', start: ['19:00', '19:30'], end: ['19:45', '20:15'] },
+            { label: '19:55-20:40', start: ['19:55', '20:25'], end: ['20:40', '21:10'] }
+        ];
+
+        timeSlots.forEach(slot => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="bg-light align-middle"><small class="fw-bold" style="font-size: 0.7rem;">${slot.label}</small></td><td></td><td></td><td></td><td></td><td></td>`;
+            tbody.appendChild(row);
         });
-}
 
-function loadAttendanceAnalytics() {
-    fetch('/api/analytics/teacher/classes', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 403) {
-                window.location.href = '/login';
-                return [];
-            }
-        })
-        .then(data => {
-            if (data) {
-                displayAttendanceAnalytics(data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading attendance analytics:', error);
-            document.getElementById('attendance-analytics').innerHTML = '<div class="alert alert-danger">Error loading analytics data.</div>';
-        });
-}
+        if (courses) {
+            courses.forEach(course => {
+                if (course.start_time && course.start_time.startsWith('00:00')) return;
 
-function displayActiveSessions(sessions) {
-    const container = document.getElementById('active-sessions');
+                if (course.start_time && course.end_time && course.day_of_week !== undefined && course.day_of_week !== null) {
+                    const startTime = course.start_time.substring(0, 5);
+                    const endTime = course.end_time.substring(0, 5);
 
-    if (sessions.length === 0) {
-        container.innerHTML = '<p class="text-muted">No active sessions.</p>';
-        return;
+                    let startIndex = -1;
+                    startIndex = timeSlots.findIndex(slot => slot.start.includes(startTime));
+
+                    if (startIndex === -1) {
+                        startIndex = timeSlots.findIndex((slot, idx) => {
+                            const slotStart = slot.start[0];
+                            const nextSlot = timeSlots[idx + 1];
+                            const nextSlotStart = nextSlot ? nextSlot.start[0] : '23:59';
+                            return startTime >= slotStart && startTime < nextSlotStart;
+                        });
+                    }
+
+                    if (startIndex >= 0) {
+                        let endIndex = startIndex;
+                        let foundEnd = -1;
+                        foundEnd = timeSlots.findIndex(slot => slot.end.includes(endTime));
+
+                        if (foundEnd === -1) {
+                            for (let i = startIndex; i < timeSlots.length; i++) {
+                                const slotStart = timeSlots[i].start[0];
+                                if (endTime > slotStart) {
+                                    endIndex = i;
+                                } else {
+                                    break;
+                                }
+                            }
+                        } else {
+                            endIndex = foundEnd;
+                        }
+
+                        let span = endIndex - startIndex + 1;
+                        if (span < 1) span = 1;
+
+                        const cellIndex = course.day_of_week + 1;
+                        if (cellIndex >= 1 && cellIndex <= 5) {
+                            const cell = tbody.rows[startIndex].cells[cellIndex];
+
+                            if (span > 1) {
+                                cell.rowSpan = span;
+                                for (let k = 1; k < span; k++) {
+                                    if (tbody.rows[startIndex + k]) {
+                                        const nextCell = tbody.rows[startIndex + k].cells[cellIndex];
+                                        if (nextCell) nextCell.style.display = 'none';
+                                    }
+                                }
+                            }
+
+                            cell.innerHTML += `
+                                <div class="p-1 border rounded bg-white shadow-sm mb-1 position-relative group-hover h-100 d-flex flex-column justify-content-center overflow-hidden">
+                                    <div class="fw-bold text-primary text-truncate small" title="${course.name}">${course.name}</div>
+                                    <div class="small text-dark fw-bold" style="font-size: 0.65rem;">${startTime}-${endTime}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${course.room || 'TBD'}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${course.class_name || 'Class'}</div>
+                                </div>
+                                `;
+                        }
+                    }
+                }
+            });
+        }
     }
 
-    let html = '<div class="list-group">';
-    sessions.forEach(session => {
-        const startTime = new Date(session.start_time).toLocaleTimeString();
-        const statusBadge = session.status === 'active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">' + session.status + '</span>';
-        html += `
+    function loadActiveSessions() {
+        fetch('/api/attendance/sessions', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    window.location.href = '/login';
+                    return [];
+                }
+            })
+            .then(data => {
+                if (data) {
+                    displayActiveSessions(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sessions:', error);
+            });
+    }
+
+    function loadAttendanceAnalytics() {
+        fetch('/api/analytics/teacher/classes', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    window.location.href = '/login';
+                    return [];
+                }
+            })
+            .then(data => {
+                if (data) {
+                    displayAttendanceAnalytics(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading attendance analytics:', error);
+                document.getElementById('attendance-analytics').innerHTML = '<div class="alert alert-danger">Error loading analytics data.</div>';
+            });
+    }
+
+    function displayActiveSessions(sessions) {
+        const container = document.getElementById('active-sessions');
+
+        if (sessions.length === 0) {
+            container.innerHTML = '<p class="text-muted">No active sessions.</p>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        sessions.forEach(session => {
+            const startTime = new Date(session.start_time).toLocaleTimeString();
+            const statusBadge = session.status === 'active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">' + session.status + '</span>';
+            html += `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                     <h6 class="mb-1">${session.class_name} ${statusBadge}</h6>
@@ -125,26 +262,26 @@ function displayActiveSessions(sessions) {
                 </div>
             </div>
         `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function displayAttendanceAnalytics(analytics) {
-    const container = document.getElementById('attendance-analytics');
-
-    if (!analytics || analytics.length === 0) {
-        container.innerHTML = '<p class="text-muted">No attendance data available.</p>';
-        return;
+        });
+        html += '</div>';
+        container.innerHTML = html;
     }
 
-    let html = '<div class="row">';
-    analytics.forEach(cls => {
-        const attendanceRate = cls.average_attendance || 0;
-        const rateColor = attendanceRate >= 80 ? 'success' : attendanceRate >= 60 ? 'warning' : 'danger';
-        const rateIcon = attendanceRate >= 80 ? 'fas fa-check-circle' : attendanceRate >= 60 ? 'fas fa-exclamation-triangle' : 'fas fa-times-circle';
+    function displayAttendanceAnalytics(analytics) {
+        const container = document.getElementById('attendance-analytics');
 
-        html += `
+        if (!analytics || analytics.length === 0) {
+            container.innerHTML = '<p class="text-muted">No attendance data available.</p>';
+            return;
+        }
+
+        let html = '<div class="row">';
+        analytics.forEach(cls => {
+            const attendanceRate = cls.average_attendance || 0;
+            const rateColor = attendanceRate >= 80 ? 'success' : attendanceRate >= 60 ? 'warning' : 'danger';
+            const rateIcon = attendanceRate >= 80 ? 'fas fa-check-circle' : attendanceRate >= 60 ? 'fas fa-exclamation-triangle' : 'fas fa-times-circle';
+
+            html += `
             <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body">
@@ -177,36 +314,36 @@ function displayAttendanceAnalytics(analytics) {
                 </div>
             </div>
         `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
 
 
 
 
 
-function endSession(sessionId) {
-    if (!confirm('Are you sure you want to end this attendance session?')) return;
+    function endSession(sessionId) {
+        if (!confirm('Are you sure you want to end this attendance session?')) return;
 
-    fetch(`/api/attendance/sessions/${sessionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'completed' })
-    })
-    .then(response => {
-        if (response.ok) {
-            alert('Session ended successfully!');
-            loadActiveSessions(); // Refresh the list
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to end session'); });
-        }
-    })
-    .catch(error => {
-        console.error('Error ending session:', error);
-        alert('Error: ' + error.message);
-    });
-}
+        fetch(`/api/attendance/sessions/${sessionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'completed' })
+        })
+            .then(response => {
+                if (response.ok) {
+                    alert('Session ended successfully!');
+                    loadActiveSessions(); // Refresh the list
+                } else {
+                    return response.json().then(err => { throw new Error(err.error || 'Failed to end session'); });
+                }
+            })
+            .catch(error => {
+                console.error('Error ending session:', error);
+                alert('Error: ' + error.message);
+            });
+    }
 </script>
 {% endblock %}

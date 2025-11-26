@@ -5,10 +5,12 @@
 {% block content %}
 <ul class="nav nav-tabs" id="teacherTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view" type="button" role="tab">Teacher Management</button>
+        <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view"
+            type="button" role="tab">Teacher Management</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="workload-tab" data-bs-toggle="tab" data-bs-target="#workload-view" type="button" role="tab">Workload Balancing</button>
+        <button class="nav-link" id="workload-tab" data-bs-toggle="tab" data-bs-target="#workload-view" type="button"
+            role="tab">Workload Balancing</button>
     </li>
 </ul>
 <div class="tab-content mt-3" id="teacherTabsContent">
@@ -24,7 +26,8 @@
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="searchInput" placeholder="Search teachers by username or email..." onkeyup="filterTeachers()">
+                            <input type="text" class="form-control" id="searchInput"
+                                placeholder="Search teachers by username or email..." onkeyup="filterTeachers()">
                         </div>
                         <div class="table-responsive">
                             <table class="table table-striped" id="teachersTable">
@@ -123,7 +126,8 @@
                             <div id="balancingSuggestions" style="display: none;">
                                 <h6 class="mt-4">Rebalancing Suggestions</h6>
                                 <div class="alert alert-info">
-                                    <strong>Auto-balancing Recommendations:</strong> The following course reassignments are suggested to improve workload balance.
+                                    <strong>Auto-balancing Recommendations:</strong> The following course reassignments
+                                    are suggested to improve workload balance.
                                 </div>
                                 <div id="suggestionsList">
                                     <!-- Suggestions will be loaded here -->
@@ -184,7 +188,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="teacherCourses" class="form-label">Courses (comma-separated)</label>
-                        <input type="text" class="form-control" id="teacherCourses" placeholder="e.g., Math, Physics, Chemistry">
+                        <input type="text" class="form-control" id="teacherCourses"
+                            placeholder="e.g., Math, Physics, Chemistry">
                     </div>
                     <div class="mb-3">
                         <label for="teacherPassword" class="form-label">Password</label>
@@ -244,7 +249,8 @@
                         <input type="text" class="form-control" id="editTeacherCourses">
                     </div>
                     <div class="mb-3">
-                        <label for="editTeacherPassword" class="form-label">New Password (leave empty to keep current)</label>
+                        <label for="editTeacherPassword" class="form-label">New Password (leave empty to keep
+                            current)</label>
                         <input type="password" class="form-control" id="editTeacherPassword">
                     </div>
                 </form>
@@ -258,51 +264,50 @@
 </div>
 
 <script>
-let teachers = [];
+    let teachers = [];
 
-async function loadTeachers() {
-    try {
-        const response = await fetch('/api/admin/users?role=teacher', { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            teachers = data.users;
-            // Add class count for each teacher
-            await Promise.all(teachers.map(async (teacher) => {
-                try {
-                    const classResponse = await fetch(`/api/admin/teachers/${teacher.id}/classes`, { credentials: 'include' });
-                    if (classResponse.ok) {
-                        const classes = await classResponse.json();
-                        teacher.class_count = classes.length;
-                    } else {
+    async function loadTeachers() {
+        try {
+            const response = await fetch('/api/admin/teachers', { credentials: 'include' });
+            if (response.ok) {
+                teachers = await response.json();
+                // Add class count for each teacher
+                await Promise.all(teachers.map(async (teacher) => {
+                    try {
+                        const classResponse = await fetch(`/api/admin/teachers/${teacher.id}/classes`, { credentials: 'include' });
+                        if (classResponse.ok) {
+                            const classes = await classResponse.json();
+                            teacher.class_count = classes.length;
+                        } else {
+                            teacher.class_count = 0;
+                        }
+                    } catch (error) {
                         teacher.class_count = 0;
                     }
-                } catch (error) {
-                    teacher.class_count = 0;
-                }
-            }));
-            displayTeachers();
-        } else if (response.status === 403) {
-            window.location.href = '/login';
+                }));
+                displayTeachers();
+            } else if (response.status === 403) {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Error loading teachers:', error);
         }
-    } catch (error) {
-        console.error('Error loading teachers:', error);
     }
-}
 
-function displayTeachers(searchTerm = '') {
-    const tbody = document.getElementById('teachersTableBody');
-    tbody.innerHTML = '';
+    function displayTeachers(searchTerm = '') {
+        const tbody = document.getElementById('teachersTableBody');
+        tbody.innerHTML = '';
 
-    const filteredTeachers = teachers.filter(teacher =>
-        (teacher.full_name && teacher.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        const filteredTeachers = teachers.filter(teacher =>
+            (teacher.full_name && teacher.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-    filteredTeachers.forEach(teacher => {
-        const birthday = teacher.birthday ? new Date(teacher.birthday).toLocaleDateString() : 'N/A';
-        const courses = teacher.courses ? teacher.courses.join(', ') : 'N/A';
-        const row = document.createElement('tr');
-        row.innerHTML = `
+        filteredTeachers.forEach(teacher => {
+            const birthday = teacher.birthday ? new Date(teacher.birthday).toLocaleDateString() : 'N/A';
+            const courses = teacher.courses ? teacher.courses.join(', ') : 'N/A';
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td>${teacher.full_name || 'N/A'}</td>
             <td>${teacher.email}</td>
             <td>${teacher.nationality || 'N/A'}</td>
@@ -317,171 +322,171 @@ function displayTeachers(searchTerm = '') {
                 </button>
             </td>
         `;
-        tbody.appendChild(row);
-    });
-}
-
-function filterTeachers() {
-    const searchTerm = document.getElementById('searchInput').value;
-    displayTeachers(searchTerm);
-}
-
-function showCreateTeacherModal() {
-    document.getElementById('createTeacherForm').reset();
-    new bootstrap.Modal(document.getElementById('createTeacherModal')).show();
-}
-
-async function createTeacher() {
-    const courses = document.getElementById('teacherCourses').value.split(',').map(c => c.trim()).filter(c => c);
-    const formData = {
-        full_name: document.getElementById('teacherFullName').value,
-        email: document.getElementById('teacherEmail').value,
-        nationality: document.getElementById('teacherNationality').value,
-        birthday: document.getElementById('teacherBirthday').value,
-        courses: courses,
-        password: document.getElementById('teacherPassword').value,
-        role: 'teacher'
-    };
-
-    try {
-        const response = await fetch('/api/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(formData)
+            tbody.appendChild(row);
         });
+    }
 
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('createTeacherModal')).hide();
-            loadTeachers();
-            alert('Teacher created successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
+    function filterTeachers() {
+        const searchTerm = document.getElementById('searchInput').value;
+        displayTeachers(searchTerm);
+    }
+
+    function showCreateTeacherModal() {
+        document.getElementById('createTeacherForm').reset();
+        new bootstrap.Modal(document.getElementById('createTeacherModal')).show();
+    }
+
+    async function createTeacher() {
+        const courses = document.getElementById('teacherCourses').value.split(',').map(c => c.trim()).filter(c => c);
+        const formData = {
+            full_name: document.getElementById('teacherFullName').value,
+            email: document.getElementById('teacherEmail').value,
+            nationality: document.getElementById('teacherNationality').value,
+            birthday: document.getElementById('teacherBirthday').value,
+            courses: courses,
+            password: document.getElementById('teacherPassword').value,
+            role: 'teacher'
+        };
+
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('createTeacherModal')).hide();
+                loadTeachers();
+                alert('Teacher created successfully!');
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error creating teacher:', error);
+            alert('Error creating teacher');
         }
-    } catch (error) {
-        console.error('Error creating teacher:', error);
-        alert('Error creating teacher');
-    }
-}
-
-function editTeacher(teacherId) {
-    const teacher = teachers.find(t => t.id === teacherId);
-    if (!teacher) return;
-
-    document.getElementById('editTeacherId').value = teacher.id;
-    document.getElementById('editTeacherFullName').value = teacher.full_name || '';
-    document.getElementById('editTeacherEmail').value = teacher.email;
-    document.getElementById('editTeacherNationality').value = teacher.nationality || '';
-    document.getElementById('editTeacherBirthday').value = teacher.birthday ? teacher.birthday.split('T')[0] : '';
-    document.getElementById('editTeacherCourses').value = teacher.courses ? teacher.courses.join(', ') : '';
-    document.getElementById('editTeacherPassword').value = '';
-
-    new bootstrap.Modal(document.getElementById('editTeacherModal')).show();
-}
-
-async function updateTeacher() {
-    const teacherId = document.getElementById('editTeacherId').value;
-    const courses = document.getElementById('editTeacherCourses').value.split(',').map(c => c.trim()).filter(c => c);
-    const formData = {
-        full_name: document.getElementById('editTeacherFullName').value,
-        email: document.getElementById('editTeacherEmail').value,
-        nationality: document.getElementById('editTeacherNationality').value,
-        courses: courses,
-        role: 'teacher'
-    };
-
-    const birthday = document.getElementById('editTeacherBirthday').value;
-    if (birthday) {
-        formData.birthday = birthday;
     }
 
-    const password = document.getElementById('editTeacherPassword').value;
-    if (password) {
-        formData.password = password;
+    function editTeacher(teacherId) {
+        const teacher = teachers.find(t => t.id === teacherId);
+        if (!teacher) return;
+
+        document.getElementById('editTeacherId').value = teacher.id;
+        document.getElementById('editTeacherFullName').value = teacher.full_name || '';
+        document.getElementById('editTeacherEmail').value = teacher.email;
+        document.getElementById('editTeacherNationality').value = teacher.nationality || '';
+        document.getElementById('editTeacherBirthday').value = teacher.birthday ? teacher.birthday.split('T')[0] : '';
+        document.getElementById('editTeacherCourses').value = teacher.courses ? teacher.courses.join(', ') : '';
+        document.getElementById('editTeacherPassword').value = '';
+
+        new bootstrap.Modal(document.getElementById('editTeacherModal')).show();
     }
 
-    try {
-        const response = await fetch(`/api/admin/users/${teacherId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(formData)
-        });
+    async function updateTeacher() {
+        const teacherId = document.getElementById('editTeacherId').value;
+        const courses = document.getElementById('editTeacherCourses').value.split(',').map(c => c.trim()).filter(c => c);
+        const formData = {
+            full_name: document.getElementById('editTeacherFullName').value,
+            email: document.getElementById('editTeacherEmail').value,
+            nationality: document.getElementById('editTeacherNationality').value,
+            courses: courses,
+            role: 'teacher'
+        };
 
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('editTeacherModal')).hide();
-            loadTeachers();
-            alert('Teacher updated successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
+        const birthday = document.getElementById('editTeacherBirthday').value;
+        if (birthday) {
+            formData.birthday = birthday;
         }
-    } catch (error) {
-        console.error('Error updating teacher:', error);
-        alert('Error updating teacher');
+
+        const password = document.getElementById('editTeacherPassword').value;
+        if (password) {
+            formData.password = password;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${teacherId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editTeacherModal')).hide();
+                loadTeachers();
+                alert('Teacher updated successfully!');
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error updating teacher:', error);
+            alert('Error updating teacher');
+        }
     }
-}
 
-async function deleteTeacher(teacherId) {
-    if (!confirm('Are you sure you want to delete this teacher?')) return;
+    async function deleteTeacher(teacherId) {
+        if (!confirm('Are you sure you want to delete this teacher?')) return;
 
-    try {
-        const response = await fetch(`/api/admin/users/${teacherId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
+        try {
+            const response = await fetch(`/api/admin/users/${teacherId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
 
-        if (response.ok) {
-            loadTeachers();
-            alert('Teacher deleted successfully!');
-        } else {
+            if (response.ok) {
+                loadTeachers();
+                alert('Teacher deleted successfully!');
+            } else {
+                alert('Error deleting teacher');
+            }
+        } catch (error) {
+            console.error('Error deleting teacher:', error);
             alert('Error deleting teacher');
         }
-    } catch (error) {
-        console.error('Error deleting teacher:', error);
-        alert('Error deleting teacher');
     }
-}
 
-async function analyzeWorkload() {
-    document.getElementById('workloadLoading').style.display = 'block';
-    document.getElementById('workloadAnalysis').style.display = 'none';
+    async function analyzeWorkload() {
+        document.getElementById('workloadLoading').style.display = 'block';
+        document.getElementById('workloadAnalysis').style.display = 'none';
 
-    try {
-        const response = await fetch('/api/admin/workload/analysis', { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            displayWorkloadAnalysis(data);
-        } else {
+        try {
+            const response = await fetch('/api/admin/workload/analysis', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                displayWorkloadAnalysis(data);
+            } else {
+                alert('Error analyzing workload');
+            }
+        } catch (error) {
+            console.error('Error analyzing workload:', error);
             alert('Error analyzing workload');
         }
-    } catch (error) {
-        console.error('Error analyzing workload:', error);
-        alert('Error analyzing workload');
+
+        document.getElementById('workloadLoading').style.display = 'none';
     }
 
-    document.getElementById('workloadLoading').style.display = 'none';
-}
+    function displayWorkloadAnalysis(data) {
+        // Update summary cards
+        document.getElementById('totalTeachers').textContent = data.length;
+        const avgHours = data.length > 0 ? (data.reduce((sum, t) => sum + t.total_hours, 0) / data.length).toFixed(1) : 0;
+        document.getElementById('avgHours').textContent = avgHours;
+        document.getElementById('unbalancedCount').textContent = data.filter(t => t.balance_score > 1.0).length;
 
-function displayWorkloadAnalysis(data) {
-    // Update summary cards
-    document.getElementById('totalTeachers').textContent = data.length;
-    const avgHours = data.length > 0 ? (data.reduce((sum, t) => sum + t.total_hours, 0) / data.length).toFixed(1) : 0;
-    document.getElementById('avgHours').textContent = avgHours;
-    document.getElementById('unbalancedCount').textContent = data.filter(t => t.balance_score > 1.0).length;
+        // Display workload table
+        const tbody = document.getElementById('workloadTableBody');
+        tbody.innerHTML = '';
 
-    // Display workload table
-    const tbody = document.getElementById('workloadTableBody');
-    tbody.innerHTML = '';
+        data.forEach(teacher => {
+            const statusBadge = teacher.balance_score > 1.0 ?
+                '<span class="badge bg-warning">Unbalanced</span>' :
+                '<span class="badge bg-success">Balanced</span>';
 
-    data.forEach(teacher => {
-        const statusBadge = teacher.balance_score > 1.0 ?
-            '<span class="badge bg-warning">Unbalanced</span>' :
-            '<span class="badge bg-success">Balanced</span>';
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td>${teacher.teacher_name}</td>
             <td>${teacher.total_hours}h</td>
             <td>${teacher.total_courses}</td>
@@ -489,53 +494,53 @@ function displayWorkloadAnalysis(data) {
             <td>${teacher.balance_score}</td>
             <td>${statusBadge}</td>
         `;
-        tbody.appendChild(row);
-    });
-
-    document.getElementById('workloadAnalysis').style.display = 'block';
-}
-
-async function balanceWorkload() {
-    if (!confirm('This will analyze current workloads and suggest course reassignments. Continue?')) return;
-
-    document.getElementById('workloadLoading').style.display = 'block';
-
-    try {
-        const response = await fetch('/api/admin/workload/balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ target_balance_score: 1.0 })
+            tbody.appendChild(row);
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            displayBalancingSuggestions(data);
-        } else {
-            alert('Error generating balancing suggestions');
-        }
-    } catch (error) {
-        console.error('Error balancing workload:', error);
-        alert('Error balancing workload');
+        document.getElementById('workloadAnalysis').style.display = 'block';
     }
 
-    document.getElementById('workloadLoading').style.display = 'none';
-}
+    async function balanceWorkload() {
+        if (!confirm('This will analyze current workloads and suggest course reassignments. Continue?')) return;
 
-function displayBalancingSuggestions(data) {
-    document.getElementById('totalSuggestions').textContent = data.suggestions.length;
+        document.getElementById('workloadLoading').style.display = 'block';
 
-    const suggestionsDiv = document.getElementById('suggestionsList');
-    suggestionsDiv.innerHTML = '';
+        try {
+            const response = await fetch('/api/admin/workload/balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ target_balance_score: 1.0 })
+            });
 
-    if (data.suggestions.length === 0) {
-        suggestionsDiv.innerHTML = '<div class="alert alert-success">All teachers have balanced workloads. No changes needed.</div>';
-    } else {
-        data.suggestions.forEach((suggestion, index) => {
-            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const suggestionCard = document.createElement('div');
-            suggestionCard.className = 'card mb-3';
-            suggestionCard.innerHTML = `
+            if (response.ok) {
+                const data = await response.json();
+                displayBalancingSuggestions(data);
+            } else {
+                alert('Error generating balancing suggestions');
+            }
+        } catch (error) {
+            console.error('Error balancing workload:', error);
+            alert('Error balancing workload');
+        }
+
+        document.getElementById('workloadLoading').style.display = 'none';
+    }
+
+    function displayBalancingSuggestions(data) {
+        document.getElementById('totalSuggestions').textContent = data.suggestions.length;
+
+        const suggestionsDiv = document.getElementById('suggestionsList');
+        suggestionsDiv.innerHTML = '';
+
+        if (data.suggestions.length === 0) {
+            suggestionsDiv.innerHTML = '<div class="alert alert-success">All teachers have balanced workloads. No changes needed.</div>';
+        } else {
+            data.suggestions.forEach((suggestion, index) => {
+                const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                const suggestionCard = document.createElement('div');
+                suggestionCard.className = 'card mb-3';
+                suggestionCard.innerHTML = `
                 <div class="card-body">
                     <h6 class="card-title">Suggestion ${index + 1}: ${suggestion.course_name}</h6>
                     <p class="card-text">
@@ -548,44 +553,44 @@ function displayBalancingSuggestions(data) {
                     </button>
                 </div>
             `;
-            suggestionsDiv.appendChild(suggestionCard);
-        });
+                suggestionsDiv.appendChild(suggestionCard);
+            });
+        }
+
+        document.getElementById('balancingSuggestions').style.display = 'block';
     }
 
-    document.getElementById('balancingSuggestions').style.display = 'block';
-}
+    async function applySuggestion(courseId, newTeacherUsername) {
+        // Find teacher ID by username
+        const teacher = teachers.find(t => t.username === newTeacherUsername);
+        if (!teacher) {
+            alert('Teacher not found');
+            return;
+        }
 
-async function applySuggestion(courseId, newTeacherUsername) {
-    // Find teacher ID by username
-    const teacher = teachers.find(t => t.username === newTeacherUsername);
-    if (!teacher) {
-        alert('Teacher not found');
-        return;
-    }
+        if (!confirm(`Reassign course to ${newTeacherUsername}?`)) return;
 
-    if (!confirm(`Reassign course to ${newTeacherUsername}?`)) return;
+        try {
+            const response = await fetch(`/api/admin/classes/course/${courseId}/reassign`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ teacher_id: teacher.id })
+            });
 
-    try {
-        const response = await fetch(`/api/admin/classes/course/${courseId}/reassign`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ teacher_id: teacher.id })
-        });
-
-        if (response.ok) {
-            alert('Course reassigned successfully!');
-            analyzeWorkload(); // Refresh analysis
-        } else {
+            if (response.ok) {
+                alert('Course reassigned successfully!');
+                analyzeWorkload(); // Refresh analysis
+            } else {
+                alert('Error reassigning course');
+            }
+        } catch (error) {
+            console.error('Error reassigning course:', error);
             alert('Error reassigning course');
         }
-    } catch (error) {
-        console.error('Error reassigning course:', error);
-        alert('Error reassigning course');
     }
-}
 
-// Load teachers on page load
-document.addEventListener('DOMContentLoaded', loadTeachers);
+    // Load teachers on page load
+    document.addEventListener('DOMContentLoaded', loadTeachers);
 </script>
 {% endblock %}

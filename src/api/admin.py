@@ -136,6 +136,8 @@ def create_user():
         # Optional fields
         if 'full_name' in data:
             user.full_name = data['full_name']
+        if 'nationality' in data:
+            user.nationality = data['nationality']
         if 'gender' in data:
             user.gender = data['gender']
         if 'major' in data:
@@ -149,6 +151,8 @@ def create_user():
                 user.birthday = None
         if 'degree_level' in data:
             user.degree_level = data['degree_level']
+        if 'courses' in data:
+            user.courses = data['courses']
 
         db.session.add(user)
         db.session.commit()
@@ -182,6 +186,8 @@ def update_user(user_id):
         # Optional fields
         if 'full_name' in data:
             user.full_name = data['full_name']
+        if 'nationality' in data:
+            user.nationality = data['nationality']
         if 'gender' in data:
             user.gender = data['gender']
         if 'major' in data:
@@ -195,6 +201,8 @@ def update_user(user_id):
                 user.birthday = None
         if 'degree_level' in data:
             user.degree_level = data['degree_level']
+        if 'courses' in data:
+            user.courses = data['courses']
 
         db.session.commit()
 
@@ -229,14 +237,20 @@ def get_teachers():
 
         for teacher in teachers:
             # Get courses taught by this teacher
-            courses = Course.query.filter_by(teacher_id=teacher.id).all()
-            course_names = [course.name for course in courses]
+            # Prioritize the courses JSON field if available
+            if teacher.courses:
+                course_names = teacher.courses
+            else:
+                courses = Course.query.filter_by(teacher_id=teacher.id).all()
+                course_names = [course.name for course in courses]
 
             result.append({
                 'id': teacher.id,
                 'username': teacher.username,
                 'email': teacher.email,
                 'full_name': teacher.full_name,
+                'nationality': teacher.nationality,
+                'birthday': teacher.birthday.isoformat() if teacher.birthday else None,
                 'courses': course_names
             })
 
@@ -306,6 +320,17 @@ def create_class():
         new_class = Class()
         new_class.name = data['name']
         db.session.add(new_class)
+        db.session.flush()  # Flush to get the new_class.id
+
+        # Handle student enrollment
+        if 'student_ids' in data and isinstance(data['student_ids'], list):
+            for student_id in data['student_ids']:
+                # Verify student exists and is a student
+                student = User.query.get(student_id)
+                if student and student.role == UserRole.STUDENT:
+                    enrollment = Enrollment(class_id=new_class.id, student_id=student_id)
+                    db.session.add(enrollment)
+
         db.session.commit()
 
         return jsonify({
@@ -363,43 +388,297 @@ def delete_class(class_id):
 @admin_bp.route('/classes/enroll', methods=['POST'])
 @admin_or_session_required
 def enroll_student():
-    """Enroll a student in a class"""
+    """Enroll a student or multiple students in a class"""
     try:
         data = request.get_json()
-        if not data or 'class_id' not in data or 'student_id' not in data:
-            return jsonify({'error': 'class_id and student_id are required'}), 400
+        if not data or 'class_id' not in data:
+            return jsonify({'error': 'class_id is required'}), 400
 
         class_id = data['class_id']
-        student_id = data['student_id']
+        
+        # Check if class exists
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return jsonify({'error': 'Class not found'}), 404
+
+        student_ids = []
+        if 'student_ids' in data and isinstance(data['student_ids'], list):
+            student_ids = data['student_ids']
+        elif 'student_id' in data:
+            student_ids = [data['student_id']]
+        else:
+            return jsonify({'error': 'student_id or student_ids required'}), 400
+
+        enrolled_count = 0
+        for student_id in student_ids:
+            # Check if student exists and is a student
+            student = User.query.get(student_id)
+            if not student or student.role != UserRole.STUDENT:
+                continue
+
+            # Check if already enrolled
+            existing = Enrollment.query.filter_by(class_id=class_id, student_id=student_id).first()
+            if existing:
+                continue
+
+            enrollment = Enrollment()
+            enrollment.class_id = class_id
+            enrollment.student_id = student_id
+            db.session.add(enrollment)
+            enrolled_count += 1
+
+        db.session.commit()
+
+        return jsonify({'message': f'{enrolled_count} students enrolled successfully'}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/classes/<int:class_id>/students', methods=['GET'])
+@admin_or_session_required
+def get_class_students(class_id):
+    """Get all students enrolled in a class"""
+    try:
+        class_obj = Class.query.get_or_404(class_id)
+        
+        enrollments = Enrollment.query.filter_by(class_id=class_id).all()
+        students = []
+        for enrollment in enrollments:
+            student = User.query.get(enrollment.student_id)
+            if student:
+                students.append({
+                    'id': student.id,
+                    'username': student.username,
+                    'full_name': student.full_name,
+                    'email': student.email,
+                    'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None
+                })
+        
+        return jsonify({'students': students})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/classes/courses/assign', methods=['POST'])
+@admin_or_session_required
+def assign_courses():
+    """Assign courses to a class"""
+    try:
+        data = request.get_json()
+        if not data or 'class_id' not in data or 'courses' not in data:
+            return jsonify({'error': 'class_id and courses are required'}), 400
+
+        class_id = data['class_id']
+        courses_list = data['courses']
 
         # Check if class exists
         class_obj = Class.query.get(class_id)
         if not class_obj:
             return jsonify({'error': 'Class not found'}), 404
 
-        # Check if student exists and is a student
-        student = User.query.get(student_id)
-        if not student or student.role != UserRole.STUDENT:
-            return jsonify({'error': 'Invalid student'}), 400
+        created_count = 0
+        for course_data in courses_list:
+            # course_data should contain: name, teacher_id, start_time, end_time, day_of_week, room
+            # For now, we'll create a basic course entry. 
+            # In a real scenario, we'd need more details like schedule.
+            # Assuming the frontend sends just names and we need to find the teacher who teaches it.
+            
+            course_name = course_data.get('name')
+            teacher_id = course_data.get('teacher_id')
+            
+            if not course_name or not teacher_id:
+                continue
 
-        # Check if already enrolled
-        existing = Enrollment.query.filter_by(class_id=class_id, student_id=student_id).first()
-        if existing:
-            return jsonify({'error': 'Student already enrolled in this class'}), 400
+            # Check if course already assigned to this class
+            existing_course = Course.query.filter_by(
+                class_id=class_id, 
+                name=course_name,
+                teacher_id=teacher_id
+            ).first()
+            
+            if existing_course:
+                continue
 
-        enrollment = Enrollment()
-        enrollment.class_id = class_id
-        enrollment.student_id = student_id
-        db.session.add(enrollment)
+            # Create a new Course instance
+            # Note: This requires the frontend to provide schedule details or defaults
+            # For this fix, we will use default values if not provided, 
+            # but ideally the UI should ask for schedule.
+            
+            # Set default semester dates (current date to +4 months)
+            today = datetime.now().date()
+
+            new_course = Course(
+                class_id=class_id,
+                name=course_name,
+                teacher_id=teacher_id,
+                start_time=datetime.strptime('00:00', '%H:%M').time(),
+                end_time=datetime.strptime('00:00', '%H:%M').time(),
+                day_of_week=6, # Sunday (Placeholder)
+                room='TBD',
+                start_date=today,
+                end_date=today + timedelta(days=120)
+            )
+            
+            db.session.add(new_course)
+            created_count += 1
+
         db.session.commit()
 
-        return jsonify({'message': 'Student enrolled successfully'}), 201
+        return jsonify({'message': f'{created_count} courses assigned successfully'}), 201
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@admin_bp.route('/students/<int:student_id>/photo', methods=['GET'])
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/classes/<int:class_id>/courses/<int:course_id>', methods=['DELETE'])
+@admin_or_session_required
+def remove_course_from_class(class_id, course_id):
+    """Remove a course from a class"""
+    try:
+        course = Course.query.filter_by(id=course_id, class_id=class_id).first_or_404()
+        db.session.delete(course)
+        db.session.commit()
+        
+        return jsonify({'message': 'Course removed from class'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/classes/<int:class_id>/students/<int:student_id>', methods=['DELETE'])
+@admin_or_session_required
+def remove_student_from_class(class_id, student_id):
+    """Remove a student from a class"""
+    try:
+        enrollment = Enrollment.query.filter_by(class_id=class_id, student_id=student_id).first_or_404()
+        db.session.delete(enrollment)
+        db.session.commit()
+        
+        return jsonify({'message': 'Student removed from class'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/classes/<int:class_id>/sessions', methods=['POST'])
+@admin_or_session_required
+def add_class_session(class_id):
+    """Add a session (course instance) to a class schedule"""
+    try:
+        data = request.get_json()
+        # Expects: course_name, teacher_id (optional, can infer), day_of_week, start_time, end_time, room
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        required = ['course_name', 'day_of_week', 'start_time', 'end_time']
+        for field in required:
+            if field not in data:
+                return jsonify({'error': f'Missing field: {field}'}), 400
+
+        course_name = data['course_name']
+        day = int(data['day_of_week'])
+        start_str = data['start_time']
+        end_str = data['end_time']
+        room = data.get('room', 'TBD')
+        
+        # Parse times
+        try:
+            start_t = datetime.strptime(start_str, '%H:%M').time()
+            end_t = datetime.strptime(end_str, '%H:%M').time()
+        except ValueError:
+            return jsonify({'error': 'Invalid time format. Use HH:MM'}), 400
+            
+        if start_t >= end_t:
+            return jsonify({'error': 'Start time must be before end time'}), 400
+
+        # Find teacher for this course (from existing assignment or provided)
+        # We look for an existing course entry for this class/subject to get the teacher
+        existing_course = Course.query.filter_by(class_id=class_id, name=course_name).first()
+        if not existing_course:
+             return jsonify({'error': 'Course subject not assigned to this class. Assign it first.'}), 400
+        
+        teacher_id = existing_course.teacher_id
+
+        # CONFLICT CHECKS
+        
+        # 1. Class Conflict: Can't have two sessions at same time
+        class_conflict = Course.query.filter(
+            Course.class_id == class_id,
+            Course.day_of_week == day,
+            Course.start_time < end_t,
+            Course.end_time > start_t
+        ).first()
+        
+        if class_conflict:
+            return jsonify({'error': f'Class Conflict: Class already has "{class_conflict.name}" at this time'}), 409
+
+        # 2. Teacher Conflict: Teacher can't be in two places
+        teacher_conflict = Course.query.filter(
+            Course.teacher_id == teacher_id,
+            Course.day_of_week == day,
+            Course.start_time < end_t,
+            Course.end_time > start_t
+        ).first()
+        
+        if teacher_conflict:
+            return jsonify({'error': f'Teacher Conflict: Teacher is busy with "{teacher_conflict.name}" (Class {teacher_conflict.class_id})'}), 409
+
+        # 3. Room Conflict: Room can't be used twice (if room is specified and not TBD)
+        if room and room.upper() != 'TBD':
+            room_conflict = Course.query.filter(
+                Course.room == room,
+                Course.day_of_week == day,
+                Course.start_time < end_t,
+                Course.end_time > start_t
+            ).first()
+            
+            if room_conflict:
+                return jsonify({'error': f'Room Conflict: Room {room} is occupied by "{room_conflict.name}"'}), 409
+
+        # Create new Session (Course entry)
+        new_session = Course()
+        new_session.class_id = class_id
+        new_session.name = course_name
+        new_session.teacher_id = teacher_id
+        new_session.day_of_week = day
+        new_session.start_time = start_t
+        new_session.end_time = end_t
+        new_session.room = room
+        
+        # Default dates
+        today = datetime.now().date()
+        new_session.start_date = today
+        new_session.end_date = today + timedelta(days=120)
+
+        db.session.add(new_session)
+        db.session.commit()
+
+        # Return the created session data
+        teacher = User.query.get(new_session.teacher_id)
+        teacher_name = teacher.full_name or teacher.username if teacher else "Unknown"
+        
+        session_data = {
+            'id': new_session.id,
+            'name': new_session.name,
+            'teacher_id': new_session.teacher_id,
+            'teacher_name': teacher_name,
+            'start_time': new_session.start_time.strftime('%H:%M'),
+            'end_time': new_session.end_time.strftime('%H:%M'),
+            'room': new_session.room,
+            'day_of_week': new_session.day_of_week
+        }
+
+        return jsonify({'message': 'Session added successfully', 'session': session_data}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 @admin_or_session_required
 def get_student_photo(student_id):
     """Get student photo"""

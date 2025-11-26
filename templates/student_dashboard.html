@@ -6,7 +6,8 @@
 <!-- Welcome Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color)); color: white;">
+        <div class="card border-0 shadow-sm"
+            style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color)); color: white;">
             <div class="card-body p-4">
                 <div class="row align-items-center">
                     <div class="col-md-8">
@@ -69,6 +70,43 @@
     </div>
 </div>
 
+<!-- Class Schedule -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center justify-content-between bg-white">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-calendar-week me-2 text-primary"></i>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Weekly Schedule</h5>
+                        <small class="text-muted">{{ class_name if class_name else 'No Class Assigned' }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 schedule-table" id="studentScheduleTable"
+                        style="table-layout: fixed;">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th class="py-3 text-muted text-uppercase small fw-bold" style="width: 80px;">Time</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Monday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Tuesday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Wednesday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Thursday</th>
+                                <th class="py-3 text-dark" style="width: 18.4%;">Friday</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentScheduleBody">
+                            <!-- Rows generated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Attendance -->
 <div class="row">
     <div class="col-12">
@@ -97,82 +135,183 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Load classes and attendance data
-    loadDashboardData();
+    document.addEventListener('DOMContentLoaded', function () {
+        // Load classes and attendance data
+        loadDashboardData();
 
-    // Refresh every 30 seconds
-    setInterval(loadDashboardData, 30000);
-});
+        // Refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
 
-function loadDashboardData() {
-    // Load today's classes
-    fetch('/api/classes', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Failed to load classes');
-            }
-        })
-        .then(data => {
-            displayClasses(data);
-        })
-        .catch(error => {
-            console.error('Error loading classes:', error);
-            displayClasses([]);
+        // Render Schedule
+        const scheduleData = {{ schedule| tojson | safe
+    }};
+    renderStudentSchedule(scheduleData);
+    });
+
+    function renderStudentSchedule(courses) {
+        const tbody = document.getElementById('studentScheduleBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const timeSlots = [
+            { label: '08:00-08:45', start: ['08:00'], end: ['08:45'] },
+            { label: '08:55-09:40', start: ['08:55'], end: ['09:40'] },
+            { label: '09:55-10:40', start: ['09:55'], end: ['10:40'] },
+            { label: '10:50-11:35', start: ['10:50'], end: ['11:35'] },
+            { label: '11:45-12:30', start: ['11:45'], end: ['12:30'] },
+            { label: '14:00-14:45', start: ['14:00', '14:30'], end: ['14:45', '15:15'] },
+            { label: '14:55-15:40', start: ['14:55', '15:25'], end: ['15:40', '16:10'] },
+            { label: '15:50-16:35', start: ['15:50', '16:20'], end: ['16:35', '17:05'] },
+            { label: '16:45-17:30', start: ['16:45', '17:15'], end: ['17:30', '18:00'] },
+            { label: '17:40-18:25', start: ['17:40', '18:10'], end: ['18:25', '18:55'] },
+            { label: '19:00-19:45', start: ['19:00', '19:30'], end: ['19:45', '20:15'] },
+            { label: '19:55-20:40', start: ['19:55', '20:25'], end: ['20:40', '21:10'] }
+        ];
+
+        timeSlots.forEach(slot => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="bg-light align-middle"><small class="fw-bold" style="font-size: 0.7rem;">${slot.label}</small></td><td></td><td></td><td></td><td></td><td></td>`;
+            tbody.appendChild(row);
         });
 
-    // Load attendance summary
-    fetch('/api/analytics/dashboard', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Failed to load attendance data');
-            }
-        })
-        .then(data => {
-            updateAttendanceChart(data);
-        })
-        .catch(error => {
-            console.error('Error loading attendance data:', error);
-            // Show empty chart
-            updateAttendanceChart({
-                attendance_breakdown: { present: 0, late: 0, absent: 0 }
+        if (courses) {
+            courses.forEach(course => {
+                if (course.start_time && course.start_time.startsWith('00:00')) return;
+
+                if (course.start_time && course.end_time && course.day_of_week !== undefined && course.day_of_week !== null) {
+                    const startTime = course.start_time.substring(0, 5);
+                    const endTime = course.end_time.substring(0, 5);
+
+                    let startIndex = -1;
+                    startIndex = timeSlots.findIndex(slot => slot.start.includes(startTime));
+
+                    if (startIndex === -1) {
+                        startIndex = timeSlots.findIndex((slot, idx) => {
+                            const slotStart = slot.start[0];
+                            const nextSlot = timeSlots[idx + 1];
+                            const nextSlotStart = nextSlot ? nextSlot.start[0] : '23:59';
+                            return startTime >= slotStart && startTime < nextSlotStart;
+                        });
+                    }
+
+                    if (startIndex >= 0) {
+                        let endIndex = startIndex;
+                        let foundEnd = -1;
+                        foundEnd = timeSlots.findIndex(slot => slot.end.includes(endTime));
+
+                        if (foundEnd === -1) {
+                            for (let i = startIndex; i < timeSlots.length; i++) {
+                                const slotStart = timeSlots[i].start[0];
+                                if (endTime > slotStart) {
+                                    endIndex = i;
+                                } else {
+                                    break;
+                                }
+                            }
+                        } else {
+                            endIndex = foundEnd;
+                        }
+
+                        let span = endIndex - startIndex + 1;
+                        if (span < 1) span = 1;
+
+                        const cellIndex = course.day_of_week + 1;
+                        if (cellIndex >= 1 && cellIndex <= 5) {
+                            const cell = tbody.rows[startIndex].cells[cellIndex];
+
+                            if (span > 1) {
+                                cell.rowSpan = span;
+                                for (let k = 1; k < span; k++) {
+                                    if (tbody.rows[startIndex + k]) {
+                                        const nextCell = tbody.rows[startIndex + k].cells[cellIndex];
+                                        if (nextCell) nextCell.style.display = 'none';
+                                    }
+                                }
+                            }
+
+                            cell.innerHTML += `
+                                <div class="p-1 border rounded bg-white shadow-sm mb-1 position-relative group-hover h-100 d-flex flex-column justify-content-center overflow-hidden">
+                                    <div class="fw-bold text-primary text-truncate small" title="${course.name}">${course.name}</div>
+                                    <div class="small text-dark fw-bold" style="font-size: 0.65rem;">${startTime}-${endTime}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${course.room || 'TBD'}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${course.teacher_name}</div>
+                                </div>
+                                `;
+                        }
+                    }
+                }
             });
-        });
-
-    // Load recent attendance
-    fetch('/api/attendance/recent', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Failed to load recent attendance');
-            }
-        })
-        .then(data => {
-            displayRecentAttendance(data);
-        })
-        .catch(error => {
-            console.error('Error loading recent attendance:', error);
-            displayRecentAttendance([]);
-        });
-}
-
-function displayClasses(classes) {
-    const container = document.getElementById('classes-today');
-    if (!classes || classes.length === 0) {
-        container.innerHTML = '<p class="text-muted">No classes scheduled for today.</p>';
-        return;
+        }
     }
 
-    let html = '<div class="list-group">';
-    classes.forEach(cls => {
-        // cls.start_time is in HH:MM:SS format, display as HH:MM
-        const time = cls.start_time ? cls.start_time.substring(0, 5) : 'TBD';
-        html += `
+    function loadDashboardData() {
+        // Load today's classes
+        fetch('/api/classes', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to load classes');
+                }
+            })
+            .then(data => {
+                displayClasses(data);
+            })
+            .catch(error => {
+                console.error('Error loading classes:', error);
+                displayClasses([]);
+            });
+
+        // Load attendance summary
+        fetch('/api/analytics/dashboard', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to load attendance data');
+                }
+            })
+            .then(data => {
+                updateAttendanceChart(data);
+            })
+            .catch(error => {
+                console.error('Error loading attendance data:', error);
+                // Show empty chart
+                updateAttendanceChart({
+                    attendance_breakdown: { present: 0, late: 0, absent: 0 }
+                });
+            });
+
+        // Load recent attendance
+        fetch('/api/attendance/recent', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to load recent attendance');
+                }
+            })
+            .then(data => {
+                displayRecentAttendance(data);
+            })
+            .catch(error => {
+                console.error('Error loading recent attendance:', error);
+                displayRecentAttendance([]);
+            });
+    }
+
+    function displayClasses(classes) {
+        const container = document.getElementById('classes-today');
+        if (!classes || classes.length === 0) {
+            container.innerHTML = '<p class="text-muted">No classes scheduled for today.</p>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        classes.forEach(cls => {
+            // cls.start_time is in HH:MM:SS format, display as HH:MM
+            const time = cls.start_time ? cls.start_time.substring(0, 5) : 'TBD';
+            html += `
             <div class="list-group-item">
                 <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1">${cls.name || 'Unknown Course'}</h6>
@@ -181,62 +320,62 @@ function displayClasses(classes) {
                 <p class="mb-1">Room: ${cls.room || 'TBD'} | Teacher: ${cls.teacher || 'TBD'}</p>
             </div>
         `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function updateAttendanceChart(data) {
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
-
-    // Destroy existing chart if it exists and is a valid Chart instance
-    if (window.attendanceChart && typeof window.attendanceChart.destroy === 'function') {
-        window.attendanceChart.destroy();
+        });
+        html += '</div>';
+        container.innerHTML = html;
     }
 
-    // Ensure we have valid data
-    const attendanceData = data.attendance_breakdown || { present: 0, late: 0, absent: 0 };
+    function updateAttendanceChart(data) {
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
 
-    window.attendanceChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Present', 'Late', 'Absent'],
-            datasets: [{
-                data: [
-                    attendanceData.present || 0,
-                    attendanceData.late || 0,
-                    attendanceData.absent || 0
-                ],
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+        // Destroy existing chart if it exists and is a valid Chart instance
+        if (window.attendanceChart && typeof window.attendanceChart.destroy === 'function') {
+            window.attendanceChart.destroy();
+        }
+
+        // Ensure we have valid data
+        const attendanceData = data.attendance_breakdown || { present: 0, late: 0, absent: 0 };
+
+        window.attendanceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Late', 'Absent'],
+                datasets: [{
+                    data: [
+                        attendanceData.present || 0,
+                        attendanceData.late || 0,
+                        attendanceData.absent || 0
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
                 }
             }
-        }
-    });
-}
-
-function displayRecentAttendance(records) {
-    const container = document.getElementById('recent-attendance');
-    if (!records || records.length === 0) {
-        container.innerHTML = '<p class="text-muted">No recent attendance records.</p>';
-        return;
+        });
     }
 
-    let html = '<div class="table-responsive"><table class="table table-striped">';
-    html += '<thead><tr><th>Date</th><th>Class</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+    function displayRecentAttendance(records) {
+        const container = document.getElementById('recent-attendance');
+        if (!records || records.length === 0) {
+            container.innerHTML = '<p class="text-muted">No recent attendance records.</p>';
+            return;
+        }
 
-    records.forEach(record => {
-        const statusClass = record.status === 'present' ? 'success' :
-                            record.status === 'late' ? 'warning' : 'danger';
-        html += `
+        let html = '<div class="table-responsive"><table class="table table-striped">';
+        html += '<thead><tr><th>Date</th><th>Class</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+
+        records.forEach(record => {
+            const statusClass = record.status === 'present' ? 'success' :
+                record.status === 'late' ? 'warning' : 'danger';
+            html += `
             <tr>
                 <td>${record.date || 'N/A'}</td>
                 <td>${record.class_name || 'Unknown'}</td>
@@ -244,10 +383,10 @@ function displayRecentAttendance(records) {
                 <td>${record.time || 'N/A'}</td>
             </tr>
         `;
-    });
+        });
 
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    }
 </script>
 {% endblock %}

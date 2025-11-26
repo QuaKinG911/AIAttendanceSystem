@@ -1,164 +1,337 @@
+{% extends "base.html" %}
+
 {% block title %}Class Management - AI Attendance System{% endblock %}
 
 {% block extra_head %}
 <style>
-/* Disable all transitions and animations to prevent shaking */
-* {
-    transition: none !important;
-    animation: none !important;
-}
+    /* Disable all transitions and animations to prevent shaking */
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
 
-/* Ensure table is stable */
-.table-responsive {
-    overflow-x: auto;
-}
+    /* Ensure table is stable */
+    .table-responsive {
+        overflow-x: auto;
+    }
 
-#classesTable, #scheduleTable {
-    table-layout: fixed;
-}
+    #classesTable,
+    #scheduleTable {
+        table-layout: fixed;
+    }
 
-#classesTable th, #classesTable td,
-#scheduleTable th, #scheduleTable td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    #classesTable th,
+    #classesTable td,
+    #scheduleTable th,
+    #scheduleTable td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Dark mode adjustments */
+    [data-theme="dark"] .nav-link {
+        color: var(--text-color);
+    }
+
+    [data-theme="dark"] .nav-link:hover {
+        color: var(--accent-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .nav-link.active {
+        background-color: var(--card-bg);
+        color: var(--accent-color);
+        border-color: var(--border-color) var(--border-color) transparent;
+    }
+
+    [data-theme="dark"] .nav-tabs {
+        border-bottom-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .text-muted {
+        color: #bdc3c7 !important;
+    }
+
+    /* Force table text color in dark mode - Aggressive overrides */
+    [data-theme="dark"] .table,
+    [data-theme="dark"] .table> :not(caption)>*>* {
+        color: var(--text-color) !important;
+        background-color: transparent;
+        /* Let row background show through */
+    }
+
+    [data-theme="dark"] .table th,
+    [data-theme="dark"] .table td {
+        color: #ecf0f1 !important;
+        /* Explicit white/light gray */
+        border-color: var(--border-color);
+    }
+
+    /* Handle striped rows specifically */
+    [data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>* {
+        color: #ecf0f1 !important;
+        box-shadow: inset 0 0 0 9999px rgba(255, 255, 255, 0.05) !important;
+        background-color: transparent !important;
+    }
+
+    /* Handle hover state */
+    [data-theme="dark"] .table-hover>tbody>tr:hover>* {
+        color: #ecf0f1 !important;
+        box-shadow: inset 0 0 0 9999px rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Modal Dark Mode Support */
+    [data-theme="dark"] .modal-content {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .modal-header,
+    [data-theme="dark"] .modal-footer {
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    [data-theme="dark"] .list-group-item {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .form-control {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .form-control::placeholder {
+        color: #bdc3c7;
+    }
+
+    /* Schedule Manager Dark Mode */
+    [data-theme="dark"] .border-end {
+        border-right-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] .bg-light {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .list-group-item-action:hover,
+    [data-theme="dark"] .list-group-item-action:focus {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
+
+    [data-theme="dark"] .list-group-item.active {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+    }
+
+    [data-theme="dark"] .schedule-table td.bg-light {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .schedule-table .bg-white {
+        background-color: var(--card-bg) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .form-select {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .bg-white {
+        background-color: var(--card-bg) !important;
+        color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .text-dark {
+        color: var(--text-color) !important;
+    }
+
+    [data-theme="dark"] .text-muted {
+        color: #bdc3c7 !important;
+    }
+
+    [data-theme="dark"] .input-group-text {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .table {
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .table thead th {
+        color: var(--text-color);
+        border-color: var(--border-color);
+        background-color: var(--bg-color);
+    }
+
+    [data-theme="dark"] .table-bordered td,
+    [data-theme="dark"] .table-bordered th {
+        border-color: var(--border-color);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<ul class="nav nav-tabs" id="classTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view" type="button" role="tab">Class Management</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule-view" type="button" role="tab">Schedule Overview</button>
-    </li>
-</ul>
-<div class="tab-content mt-3" id="classTabsContent">
-    <div class="tab-pane show active" id="management-view" role="tabpanel">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-graduation-cap"></i> Class Management</h5>
-                        <button class="btn btn-success" onclick="showCreateClassModal()">
-                            <i class="fas fa-plus-circle"></i> Add Class
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="searchInput" placeholder="Search classes by name..." onkeyup="filterClasses()">
-                        </div>
-                        <div id="debug" class="alert alert-info">Loading classes...</div>
-                        <div class="table-responsive">
-                            <table class="table table-striped" id="classesTable">
-                                <thead>
-                                    <tr>
-                                        <th>Class Name</th>
-                                        <th>Students</th>
-                                        <th>Courses</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="classesTableBody">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-graduation-cap"></i> Class Management</h5>
+                <button class="btn btn-success" onclick="showCreateClassModal()">
+                    <i class="fas fa-plus-circle"></i> Add Class
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search classes by name..."
+                        onkeyup="filterClasses()">
+                </div>
+                <div id="debug" class="alert alert-info">Loading classes...</div>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="classesTable">
+                        <thead>
+                            <tr>
+                                <th>Class Name</th>
+                                <th>Students</th>
+                                <th>Courses</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classesTableBody">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-    <div class="tab-pane" id="schedule-view" role="tabpanel">
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="d-flex align-items-center justify-content-center mb-3">
-                            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-graduation-cap text-primary fa-2x"></i>
+</div>
+
+<!-- Class Schedule Modal -->
+<div class="modal fade" id="classScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" style="height: 90vh;">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Class Schedules</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex h-100 flex-column">
+                    <!-- Header / Toolbar -->
+                    <div
+                        class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light header-toolbar">
+                        <h5 id="selectedClassName" class="mb-0 fw-bold text-primary"></h5>
+                        <div class="text-muted small" id="scheduleStatus"></div>
+                    </div>
+
+                    <!-- Scrollable Content Area -->
+                    <div class="flex-grow-1 p-4 overflow-y-auto bg-white main-content-area" id="scheduleScrollArea">
+                        <div id="scheduleMainContent">
+                            <div class="text-center text-muted mt-5 pt-5">
+                                <div class="mb-3">
+                                    <i class="fas fa-calendar-alt fa-4x text-light-gray"></i>
+                                </div>
+                                <h5>No Class Selected</h5>
+                                <p class="text-muted">Select a class from the main list to manage its schedule.</p>
                             </div>
                         </div>
-                        <h2 class="fw-bold text-primary mb-1" id="total-classes">-</h2>
-                        <p class="text-muted mb-0 fw-semibold">Total Classes</p>
-                        <small class="text-muted">Active academic classes</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="d-flex align-items-center justify-content-center mb-3">
-                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-users text-success fa-2x"></i>
+
+                        <!-- Schedule Form & Table -->
+                        <div id="scheduleEditor" style="display: none;">
+                            <!-- Add Session Card -->
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-body bg-light rounded-3 session-card-body">
+                                    <h6 class="card-title mb-3 fw-bold text-dark"><i
+                                            class="fas fa-plus-circle me-2"></i>Add New Session</h6>
+                                    <form id="addSessionForm" class="row g-3">
+                                        <input type="hidden" id="scheduleClassId">
+
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-muted">Subject</label>
+                                            <select class="form-select" id="sessionSubject" required>
+                                                <!-- Populated via JS -->
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold text-muted">Day</label>
+                                            <select class="form-select" id="sessionDay" required>
+                                                <option value="0">Monday</option>
+                                                <option value="1">Tuesday</option>
+                                                <option value="2">Wednesday</option>
+                                                <option value="3">Thursday</option>
+                                                <option value="4">Friday</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-bold text-muted">Start Time</label>
+                                            <input type="time" class="form-control" id="sessionStart" required>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-bold text-muted">End Time</label>
+                                            <input type="time" class="form-control" id="sessionEnd" required>
+                                        </div>
+
+                                        <div class="col-md-5">
+                                            <label class="form-label small fw-bold text-muted">Room</label>
+                                            <input type="text" class="form-control" id="sessionRoom"
+                                                placeholder="e.g. Room 101, Lab A">
+                                        </div>
+
+                                        <div class="col-md-4 d-flex align-items-end">
+                                            <button type="button" class="btn btn-primary w-100 fw-bold"
+                                                onclick="addSession()">
+                                                <i class="fas fa-plus me-2"></i>Add to Schedule
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                        <h2 class="fw-bold text-success mb-1" id="total-students">-</h2>
-                        <p class="text-muted mb-0 fw-semibold">Enrolled Students</p>
-                        <small class="text-muted">Students in classes</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="d-flex align-items-center justify-content-center mb-3">
-                            <div class="bg-info bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-book text-info fa-2x"></i>
+
+                            <!-- Weekly Schedule Grid -->
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body p-0">
+                                    <div class="table-responsive rounded-3">
+                                        <table class="table table-bordered mb-0 schedule-table" id="editorScheduleTable"
+                                            style="table-layout: fixed;">
+                                            <thead class="bg-light text-center table-header">
+                                                <tr>
+                                                    <th class="py-3 text-muted text-uppercase small fw-bold"
+                                                        style="width: 80px;">Time</th>
+                                                    <th class="py-3 text-dark" style="width: 18.4%;">Monday</th>
+                                                    <th class="py-3 text-dark" style="width: 18.4%;">Tuesday</th>
+                                                    <th class="py-3 text-dark" style="width: 18.4%;">Wednesday</th>
+                                                    <th class="py-3 text-dark" style="width: 18.4%;">Thursday</th>
+                                                    <th class="py-3 text-dark" style="width: 18.4%;">Friday</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="editorScheduleBody">
+                                                <!-- Rows generated via JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <h2 class="fw-bold text-info mb-1" id="total-courses">-</h2>
-                        <p class="text-muted mb-0 fw-semibold">Assigned Courses</p>
-                        <small class="text-muted">Courses linked to classes</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="d-flex align-items-center justify-content-center mb-3">
-                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-calendar-alt text-warning fa-2x"></i>
-                            </div>
-                        </div>
-                        <h2 class="fw-bold text-warning mb-1" id="total-sessions">-</h2>
-                        <p class="text-muted mb-0 fw-semibold">Weekly Sessions</p>
-                        <small class="text-muted">Scheduled class sessions</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-calendar-alt"></i> Weekly Schedule</h5>
-                        <div>
-                            <button class="btn btn-info" onclick="showEnrollStudentModal()">
-                                <i class="fas fa-user-plus"></i> Enroll Student
-                            </button>
-                            <button class="btn btn-warning ms-2" onclick="showAssignCoursesModal()">
-                                <i class="fas fa-book"></i> Assign Courses
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered schedule-table" id="scheduleTable">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Monday</th>
-                                        <th>Tuesday</th>
-                                        <th>Wednesday</th>
-                                        <th>Thursday</th>
-                                        <th>Friday</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="scheduleTableBody">
-                                </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -196,10 +369,14 @@
                         <input type="text" class="form-control" id="classMajor" required>
                     </div>
                     <div class="mb-3">
-                        <label>Number of Sessions</label>
-                        <input type="number" class="form-control" id="numSessions" min="1" value="1" required>
+                        <label>Enroll Students</label>
+                        <input type="text" class="form-control mb-2" id="studentSearchInput"
+                            placeholder="Search students..." onkeyup="filterStudentSelection()">
+                        <div class="border p-2" style="max-height: 200px; overflow-y: auto;" id="studentSelectionList">
+                            <!-- Student checkboxes will be loaded here -->
+                            <div class="text-center text-muted">Loading students...</div>
+                        </div>
                     </div>
-                    <div id="sessionsContainer"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -242,6 +419,49 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="updateClass()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Students Modal -->
+<div class="modal fade" id="manageStudentsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Students</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="manageClassId">
+                <div class="row">
+                    <div class="col-md-6 border-end">
+                        <h6>Current Students</h6>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="currentStudentSearch"
+                                placeholder="Filter current students..." onkeyup="filterCurrentStudents()">
+                        </div>
+                        <div class="list-group" id="currentStudentsList" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Current students loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Add Students</h6>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="newStudentSearch"
+                                placeholder="Search to add..." onkeyup="filterNewStudents()">
+                        </div>
+                        <div class="list-group" id="newStudentsList" style="max-height: 400px; overflow-y: auto;">
+                            <!-- New students loaded here -->
+                        </div>
+                        <button class="btn btn-success w-100 mt-3" onclick="addSelectedStudents()">
+                            <i class="fas fa-plus"></i> Add Selected Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -290,11 +510,11 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label>Select Class</label>
-                    <select class="form-control" id="assignClassId" required>
+                    <select class="form-control" id="assignClassId" required onchange="displayCoursesForAssignment()">
                         <!-- Classes loaded here -->
                     </select>
                 </div>
-                <div id="coursesList"></div>
+                <div id="coursesList" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -307,315 +527,782 @@
 
 
 <script>
-let classes = [];
-let students = [];
-let teachers = [];
+    let classes = [];
+    let students = [];
+    let teachers = [];
 
-async function loadClasses() {
-    const response = await fetch('/api/admin/classes', { credentials: 'include' });
-    if (response.ok) {
-        const data = await response.json();
-        classes = data.classes;
-        displayClasses(classes);
-        displaySchedule();
-        loadClassStats();
-    } else {
-        document.getElementById('debug').innerHTML = 'Error loading classes';
+    async function loadClasses() {
+        const debugEl = document.getElementById('debug');
+        try {
+            const response = await fetch('/api/admin/classes', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                classes = data.classes || [];
+                displayClasses(classes);
+                if (debugEl) debugEl.style.display = 'none';
+            } else {
+                if (debugEl) {
+                    debugEl.innerHTML = 'Error loading classes';
+                    debugEl.className = 'alert alert-danger';
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            if (debugEl) {
+                debugEl.innerHTML = 'Error loading classes';
+                debugEl.className = 'alert alert-danger';
+            }
+        }
     }
-}
 
-function displayClasses(cls) {
-    const tbody = document.getElementById('classesTableBody');
-    tbody.innerHTML = '';
-    cls.forEach(c => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    function displayClasses(cls) {
+        const tbody = document.getElementById('classesTableBody');
+        tbody.innerHTML = '';
+        cls.forEach(c => {
+            const row = document.createElement('tr');
+            const uniqueCourses = new Set(c.courses.map(course => course.name)).size;
+            row.innerHTML = `
             <td>${c.name}</td>
             <td>${c.student_count}</td>
-            <td>${c.courses.length}</td>
+            <td>${uniqueCourses}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="assignCourses(${c.id})">Assign Courses</button>
-                <button class="btn btn-sm btn-warning" onclick="editClass(${c.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteClass(${c.id})">Delete</button>
+                <button class="btn btn-sm btn-info" onclick="openScheduleManager(${c.id})" title="View Schedule">
+                    <i class="fas fa-calendar-alt"></i>
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="showManageStudentsModal(${c.id})" title="Manage Students">
+                    <i class="fas fa-users"></i>
+                </button>
+                <button class="btn btn-sm btn-info" onclick="showAssignCoursesModal(${c.id})" title="Assign Courses">
+                    <i class="fas fa-book"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editClass(${c.id})" title="Edit Class">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${c.id})" title="Delete Class">
+                    <i class="fas fa-trash"></i>
+                </button>
             </td>
         `;
-        tbody.appendChild(row);
-    });
-}
+            tbody.appendChild(row);
+        });
+    }
 
-function displaySchedule() {
-    const tbody = document.getElementById('scheduleTableBody');
-    tbody.innerHTML = '';
-    const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-    times.forEach(time => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${time}</td><td></td><td></td><td></td><td></td><td></td>`;
-        tbody.appendChild(row);
-    });
-    // Populate with sessions
-    classes.forEach(cls => {
-        cls.courses.forEach(course => {
-            if (course.sessions) {
-                course.sessions.forEach(session => {
-                    const timeIndex = times.indexOf(session.start_time.split(':')[0] + ':00');
-                    if (timeIndex >= 0) {
-                        const cell = tbody.rows[timeIndex].cells[session.day_of_week];
-                        cell.innerHTML += `${course.name} (${session.room})<br>`;
+    function openScheduleManager(classId) {
+        const cls = classes.find(c => c.id === classId);
+        if (!cls) return;
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('classScheduleModal'));
+        modal.show();
+
+        document.getElementById('selectedClassName').textContent = cls.name;
+        document.getElementById('scheduleClassId').value = cls.id;
+        document.getElementById('scheduleStatus').textContent = `${cls.student_count} Students Enrolled`;
+
+        // Populate Subject Dropdown (for manual selection)
+        const uniqueSubjects = [...new Set(cls.courses.map(c => c.name))];
+        const subjectSelect = document.getElementById('sessionSubject');
+        subjectSelect.innerHTML = '<option value="">Select Subject...</option>';
+        uniqueSubjects.sort().forEach(sub => {
+            subjectSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+        });
+
+        // Show Editor
+        document.getElementById('scheduleMainContent').style.display = 'none';
+        document.getElementById('scheduleEditor').style.display = 'block';
+
+        // Render Schedule Table
+        renderScheduleTable(cls);
+    }
+
+    function prefillSessionForm(subjectName) {
+        document.getElementById('sessionSubject').value = subjectName;
+        // Highlight the form or focus input
+        document.getElementById('sessionDay').focus();
+    }
+
+    function renderScheduleTable(cls) {
+        const tbody = document.getElementById('editorScheduleBody');
+        tbody.innerHTML = '';
+
+        // Define specific time slots based on user requirement
+        const timeSlots = [
+            { label: '08:00-08:45', start: ['08:00'], end: ['08:45'] },
+            { label: '08:55-09:40', start: ['08:55'], end: ['09:40'] },
+            { label: '09:55-10:40', start: ['09:55'], end: ['10:40'] },
+            { label: '10:50-11:35', start: ['10:50'], end: ['11:35'] },
+            { label: '11:45-12:30', start: ['11:45'], end: ['12:30'] },
+            { label: '14:00-14:45', start: ['14:00', '14:30'], end: ['14:45', '15:15'] },
+            { label: '14:55-15:40', start: ['14:55', '15:25'], end: ['15:40', '16:10'] },
+            { label: '15:50-16:35', start: ['15:50', '16:20'], end: ['16:35', '17:05'] },
+            { label: '16:45-17:30', start: ['16:45', '17:15'], end: ['17:30', '18:00'] },
+            { label: '17:40-18:25', start: ['17:40', '18:10'], end: ['18:25', '18:55'] },
+            { label: '19:00-19:45', start: ['19:00', '19:30'], end: ['19:45', '20:15'] },
+            { label: '19:55-20:40', start: ['19:55', '20:25'], end: ['20:40', '21:10'] }
+        ];
+
+        timeSlots.forEach(slot => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="bg-light align-middle"><small class="fw-bold" style="font-size: 0.7rem;">${slot.label}</small></td><td></td><td></td><td></td><td></td><td></td>`;
+            tbody.appendChild(row);
+        });
+
+        if (cls.courses) {
+            cls.courses.forEach(course => {
+                // Skip placeholder sessions
+                if (course.start_time && course.start_time.startsWith('00:00')) return;
+
+                if (course.start_time && course.end_time && course.day_of_week !== undefined && course.day_of_week !== null) {
+                    const startTime = course.start_time.substring(0, 5);
+                    const endTime = course.end_time.substring(0, 5);
+
+                    // Find start slot index
+                    let startIndex = -1;
+                    // Try exact match first
+                    startIndex = timeSlots.findIndex(slot => slot.start.includes(startTime));
+
+                    // If no exact match, find the slot that contains the start time
+                    if (startIndex === -1) {
+                        startIndex = timeSlots.findIndex((slot, idx) => {
+                            // Simple comparison: is start time >= slot start (using first start time for simplicity)
+                            // and < next slot start?
+                            const slotStart = slot.start[0];
+                            const nextSlot = timeSlots[idx + 1];
+                            const nextSlotStart = nextSlot ? nextSlot.start[0] : '23:59';
+                            return startTime >= slotStart && startTime < nextSlotStart;
+                        });
                     }
+
+                    if (startIndex >= 0) {
+                        // Calculate span
+                        let endIndex = startIndex;
+                        // Find end slot index (where end time matches or falls into)
+                        let foundEnd = -1;
+                        foundEnd = timeSlots.findIndex(slot => slot.end.includes(endTime));
+
+                        if (foundEnd === -1) {
+                            // If no exact match, assume it ends in the same slot or calculate based on duration
+                            // For now, let's just see how many slots it covers
+                            for (let i = startIndex; i < timeSlots.length; i++) {
+                                const slotStart = timeSlots[i].start[0];
+                                if (endTime > slotStart) {
+                                    endIndex = i;
+                                } else {
+                                    break;
+                                }
+                            }
+                        } else {
+                            endIndex = foundEnd;
+                        }
+
+                        let span = endIndex - startIndex + 1;
+                        if (span < 1) span = 1;
+
+                        const cellIndex = course.day_of_week + 1;
+                        if (cellIndex >= 1 && cellIndex <= 5) {
+                            const cell = tbody.rows[startIndex].cells[cellIndex];
+
+                            // Apply RowSpan
+                            if (span > 1) {
+                                cell.rowSpan = span;
+                                for (let k = 1; k < span; k++) {
+                                    if (tbody.rows[startIndex + k]) {
+                                        const nextCell = tbody.rows[startIndex + k].cells[cellIndex];
+                                        if (nextCell) nextCell.style.display = 'none';
+                                    }
+                                }
+                            }
+
+                            const teacherName = course.teacher_name || 'Unknown';
+
+                            // Use h-100 to fill the merged cell
+                            cell.innerHTML += `
+                                <div class="p-1 border rounded bg-white shadow-sm mb-1 position-relative group-hover h-100 d-flex flex-column justify-content-center overflow-hidden">
+                                    <div class="fw-bold text-primary text-truncate small" title="${course.name}">${course.name}</div>
+                                    <div class="small text-dark fw-bold" style="font-size: 0.65rem;">${startTime}-${endTime}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${course.room || 'TBD'}</div>
+                                    <div class="small text-muted" style="font-size: 0.65rem;">${teacherName}</div>
+                                    <button class="btn btn-sm btn-link text-danger p-0 position-absolute top-0 end-0 me-1 mt-0" 
+                                            onclick="deleteSession(${cls.id}, ${course.id})" title="Remove Session">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                             `;
+                        }
+                    }
+                }
+            });
+        }
+    }
+    async function addSession() {
+        const classId = parseInt(document.getElementById('scheduleClassId').value);
+        const subject = document.getElementById('sessionSubject').value;
+        const day = document.getElementById('sessionDay').value;
+        const start = document.getElementById('sessionStart').value;
+        const end = document.getElementById('sessionEnd').value;
+        const room = document.getElementById('sessionRoom').value;
+
+        if (!subject || !start || !end) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/classes/${classId}/sessions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    course_name: subject,
+                    day_of_week: day,
+                    start_time: start,
+                    end_time: end,
+                    room: room
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Update local state immediately
+                const cls = classes.find(c => c.id === classId);
+                if (cls && data.session) {
+                    cls.courses.push(data.session);
+                    renderScheduleTable(cls);
+                }
+
+                // Refresh full data in background
+                loadClasses();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error adding session');
+        }
+    }
+
+    async function deleteSession(classId, sessionId) {
+        if (!confirm('Remove this session?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/classes/${classId}/courses/${sessionId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                // Update local state immediately
+                const cls = classes.find(c => c.id === classId);
+                if (cls) {
+                    cls.courses = cls.courses.filter(c => c.id !== sessionId);
+                    renderScheduleTable(cls);
+                }
+
+                // Refresh full data in background
+                loadClasses();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error removing session');
+        }
+    }
+
+    function showManageStudentsModal(classId) {
+        document.getElementById('manageClassId').value = classId;
+        loadClassStudents(classId);
+        loadAllStudentsForManage(classId);
+        new bootstrap.Modal(document.getElementById('manageStudentsModal')).show();
+    }
+
+    async function loadClassStudents(classId) {
+        const container = document.getElementById('currentStudentsList');
+        container.innerHTML = '<div class="text-center text-muted">Loading...</div>';
+        try {
+            const response = await fetch(`/api/admin/classes/${classId}/students`, { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                const students = data.students || [];
+                container.innerHTML = '';
+                if (students.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted p-2">No students enrolled</div>';
+                    return;
+                }
+                students.forEach(student => {
+                    container.innerHTML += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center current-student-item">
+                            <div>
+                                <div>${student.full_name || student.username}</div>
+                                <small class="text-muted">${student.email}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeStudentFromClass(${classId}, ${student.id})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
                 });
             }
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="text-danger">Error loading students</div>';
+        }
+    }
+
+    async function loadAllStudentsForManage(classId) {
+        const container = document.getElementById('newStudentsList');
+        container.innerHTML = '<div class="text-center text-muted">Loading...</div>';
+        try {
+            // Get all students
+            const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
+            // Get currently enrolled students to filter them out
+            const enrolledResponse = await fetch(`/api/admin/classes/${classId}/students`, { credentials: 'include' });
+
+            if (response.ok && enrolledResponse.ok) {
+                const data = await response.json();
+                const enrolledData = await enrolledResponse.json();
+
+                const allStudents = data.users || [];
+                const enrolledIds = new Set((enrolledData.students || []).map(s => s.id));
+
+                container.innerHTML = '';
+                let count = 0;
+                allStudents.forEach(student => {
+                    if (!enrolledIds.has(student.id)) {
+                        count++;
+                        container.innerHTML += `
+                            <div class="list-group-item new-student-item">
+                                <div class="form-check">
+                                    <input class="form-check-input new-student-check" type="checkbox" value="${student.id}" id="new_student_${student.id}">
+                                    <label class="form-check-label" for="new_student_${student.id}">
+                                        ${student.full_name || student.username}
+                                        <br><small class="text-muted">${student.email}</small>
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                if (count === 0) {
+                    container.innerHTML = '<div class="text-center text-muted p-2">All students are already enrolled</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="text-danger">Error loading students</div>';
+        }
+    }
+
+    function filterCurrentStudents() {
+        const query = document.getElementById('currentStudentSearch').value.toLowerCase();
+        document.querySelectorAll('.current-student-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? '' : 'none';
         });
-    });
-}
-
-function showCreateClassModal() {
-    document.getElementById('numSessions').addEventListener('input', updateSessions);
-    updateSessions();
-    new bootstrap.Modal(document.getElementById('createClassModal')).show();
-}
-
-function updateSessions() {
-    const num = document.getElementById('numSessions').value;
-    const container = document.getElementById('sessionsContainer');
-    container.innerHTML = '';
-    for (let i = 0; i < num; i++) {
-        container.innerHTML += `
-            <div class="session-field mb-3 border p-3">
-                <h6>Session ${i + 1}</h6>
-                <div class="row">
-                    <div class="col-md-3">
-                        <label>Day</label>
-                        <select class="form-control" required>
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Start Time</label>
-                        <input type="time" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label>End Time</label>
-                        <input type="time" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Room</label>
-                        <input type="text" class="form-control" required>
-                    </div>
-                </div>
-            </div>
-        `;
     }
-}
 
-async function createClass() {
-    const degree = document.getElementById('classDegree').value;
-    const grade = document.getElementById('classGrade').value;
-    const major = document.getElementById('classMajor').value;
-    const name = `${grade} ${degree} of ${major}`;
-    const sessions = [];
-    document.querySelectorAll('.session-field').forEach(field => {
-        const selects = field.querySelectorAll('select');
-        const inputs = field.querySelectorAll('input');
-        sessions.push({
-            day_of_week: selects[0].value,
-            start_time: inputs[0].value,
-            end_time: inputs[1].value,
-            room: inputs[2].value
+    function filterNewStudents() {
+        const query = document.getElementById('newStudentSearch').value.toLowerCase();
+        document.querySelectorAll('.new-student-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? '' : 'none';
         });
-    });
-    const response = await fetch('/api/admin/classes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, sessions })
-    });
-    if (response.ok) {
-        loadClasses();
-        bootstrap.Modal.getInstance(document.getElementById('createClassModal')).hide();
     }
-}
 
-function editClass(id) {
-    const cls = classes.find(c => c.id === id);
-    if (!cls) return;
-    document.getElementById('editClassId').value = cls.id;
-    // Parse name to fill fields (assuming format "2025 Master's degree of Software Engineering")
-    const parts = cls.name.split(' ');
-    document.getElementById('editClassGrade').value = parts[0];
-    const degree = parts[1] + "'s";
-    document.getElementById('editClassDegree').value = degree;
-    document.getElementById('editClassMajor').value = cls.name.split(' of ')[1];
-    new bootstrap.Modal(document.getElementById('editClassModal')).show();
-}
+    async function addSelectedStudents() {
+        const classId = document.getElementById('manageClassId').value;
+        const studentIds = [];
+        document.querySelectorAll('.new-student-check:checked').forEach(cb => {
+            studentIds.push(parseInt(cb.value));
+        });
 
-async function updateClass() {
-    const id = document.getElementById('editClassId').value;
-    const degree = document.getElementById('editClassDegree').value;
-    const grade = document.getElementById('editClassGrade').value;
-    const major = document.getElementById('editClassMajor').value;
-    const name = `${grade} ${degree} of ${major}`;
-    const response = await fetch(`/api/admin/classes/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name })
-    });
-    if (response.ok) {
-        loadClasses();
-        bootstrap.Modal.getInstance(document.getElementById('editClassModal')).hide();
+        if (studentIds.length === 0) {
+            alert('Please select students to add');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/classes/enroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ class_id: parseInt(classId), student_ids: studentIds })
+            });
+
+            if (response.ok) {
+                // Refresh lists
+                loadClassStudents(classId);
+                loadAllStudentsForManage(classId);
+                loadClasses(); // Update main table counts
+                alert('Students added successfully');
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error adding students');
+        }
     }
-}
 
-async function deleteClass(id) {
-    if (!confirm('Are you sure you want to delete this class?')) return;
-    const response = await fetch(`/api/admin/classes/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-    });
-    if (response.ok) {
-        loadClasses();
+    async function removeStudentFromClass(classId, studentId) {
+        if (!confirm('Are you sure you want to remove this student from the class?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/classes/${classId}/students/${studentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                // Refresh lists
+                loadClassStudents(classId);
+                loadAllStudentsForManage(classId);
+                loadClasses(); // Update main table counts
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error removing student');
+        }
     }
-}
 
-function showAssignCoursesModal() {
-    // Load classes and teachers
-    loadClassesForAssign();
-    loadTeachersForCourses();
-    new bootstrap.Modal(document.getElementById('assignCoursesModal')).show();
-}
-
-function loadClassesForAssign() {
-    const select = document.getElementById('assignClassId');
-    select.innerHTML = '<option value="">Select Class</option>';
-    classes.forEach(c => {
-        select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-    });
-}
-
-async function loadTeachersForCourses() {
-    const response = await fetch('/api/admin/teachers', { credentials: 'include' });
-    if (response.ok) {
-        teachers = await response.json();
-        displayCoursesForAssignment();
+    function displaySchedule() {
+        const tbody = document.getElementById('scheduleTableBody');
+        tbody.innerHTML = '';
+        const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        times.forEach(time => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${time}</td><td></td><td></td><td></td><td></td><td></td>`;
+            tbody.appendChild(row);
+        });
+        // Populate with sessions
+        classes.forEach(cls => {
+            cls.courses.forEach(course => {
+                if (course.sessions) {
+                    course.sessions.forEach(session => {
+                        const timeIndex = times.indexOf(session.start_time.split(':')[0] + ':00');
+                        if (timeIndex >= 0) {
+                            const cell = tbody.rows[timeIndex].cells[session.day_of_week];
+                            cell.innerHTML += `${course.name} (${session.room})<br>`;
+                        }
+                    });
+                }
+            });
+        });
     }
-}
 
-function displayCoursesForAssignment() {
-    const container = document.getElementById('coursesList');
-    container.innerHTML = '';
-    teachers.forEach(teacher => {
-        if (teacher.courses && teacher.courses.length > 0) {
-            container.innerHTML += `<h6>${teacher.full_name || teacher.username}</h6>`;
-            teacher.courses.forEach(course => {
-                container.innerHTML += `
+    function showCreateClassModal() {
+        loadStudentsForSelection();
+        new bootstrap.Modal(document.getElementById('createClassModal')).show();
+    }
+
+    async function loadStudentsForSelection() {
+        const container = document.getElementById('studentSelectionList');
+        try {
+            const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                const students = data.users || [];
+                container.innerHTML = '';
+                students.forEach(student => {
+                    container.innerHTML += `
+                        <div class="form-check student-item">
+                            <input class="form-check-input" type="checkbox" value="${student.id}" id="student_${student.id}">
+                            <label class="form-check-label" for="student_${student.id}">
+                                ${student.full_name || student.username} (${student.email})
+                            </label>
+                        </div>
+                    `;
+                });
+            } else {
+                container.innerHTML = '<div class="text-danger">Error loading students</div>';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="text-danger">Error loading students</div>';
+        }
+    }
+
+    function filterStudentSelection() {
+        const query = document.getElementById('studentSearchInput').value.toLowerCase();
+        document.querySelectorAll('.student-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+
+    async function createClass() {
+        const degree = document.getElementById('classDegree').value;
+        const grade = document.getElementById('classGrade').value;
+        const major = document.getElementById('classMajor').value;
+        const name = `${grade} ${degree} of ${major}`;
+
+        // Collect selected students
+        const studentIds = [];
+        document.querySelectorAll('#studentSelectionList input:checked').forEach(cb => {
+            studentIds.push(parseInt(cb.value));
+        });
+
+        const response = await fetch('/api/admin/classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, student_ids: studentIds })
+        });
+        if (response.ok) {
+            loadClasses();
+            bootstrap.Modal.getInstance(document.getElementById('createClassModal')).hide();
+        }
+    }
+
+    function editClass(id) {
+        const cls = classes.find(c => c.id === id);
+        if (!cls) return;
+        document.getElementById('editClassId').value = cls.id;
+        // Parse name to fill fields (assuming format "2025 Master's degree of Software Engineering")
+        const parts = cls.name.split(' ');
+        document.getElementById('editClassGrade').value = parts[0];
+        const degree = parts[1] + "'s";
+        document.getElementById('editClassDegree').value = degree;
+        document.getElementById('editClassMajor').value = cls.name.split(' of ')[1];
+        new bootstrap.Modal(document.getElementById('editClassModal')).show();
+    }
+
+    async function updateClass() {
+        const id = document.getElementById('editClassId').value;
+        const degree = document.getElementById('editClassDegree').value;
+        const grade = document.getElementById('editClassGrade').value;
+        const major = document.getElementById('editClassMajor').value;
+        const name = `${grade} ${degree} of ${major}`;
+        const response = await fetch(`/api/admin/classes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name })
+        });
+        if (response.ok) {
+            loadClasses();
+            bootstrap.Modal.getInstance(document.getElementById('editClassModal')).hide();
+        }
+    }
+
+    async function deleteClass(id) {
+        if (!confirm('Are you sure you want to delete this class?')) return;
+        const response = await fetch(`/api/admin/classes/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            loadClasses();
+        }
+    }
+
+    function showAssignCoursesModal(classId) {
+        // Load classes and teachers
+        loadClassesForAssign(classId);
+        loadTeachersForCourses();
+        new bootstrap.Modal(document.getElementById('assignCoursesModal')).show();
+    }
+
+    function loadClassesForAssign(preSelectId) {
+        const select = document.getElementById('assignClassId');
+        select.innerHTML = '<option value="">Select Class</option>';
+        classes.forEach(c => {
+            const selected = preSelectId && c.id == preSelectId ? 'selected' : '';
+            select.innerHTML += `<option value="${c.id}" ${selected}>${c.name}</option>`;
+        });
+    }
+
+    async function loadTeachersForCourses() {
+        const response = await fetch('/api/admin/teachers', { credentials: 'include' });
+        if (response.ok) {
+            teachers = await response.json();
+            displayCoursesForAssignment();
+        }
+    }
+
+    function displayCoursesForAssignment() {
+        const classId = document.getElementById('assignClassId').value;
+        const selectedClass = classes.find(c => c.id == classId);
+
+        // Map of assigned course name -> course object
+        const assignedCoursesMap = {};
+        if (selectedClass && selectedClass.courses) {
+            selectedClass.courses.forEach(course => {
+                assignedCoursesMap[course.name + '_' + course.teacher_id] = course; // Use name and teacher_id for uniqueness
+            });
+        }
+
+        const container = document.getElementById('coursesList');
+        container.innerHTML = '';
+
+        if (!classId) {
+            container.innerHTML = '<div class="text-center text-muted p-2">Select a class to view courses</div>';
+            return;
+        }
+
+        teachers.forEach(teacher => {
+            if (teacher.courses && teacher.courses.length > 0) {
+                let teacherHtml = `<h6>${teacher.full_name || teacher.username}</h6>`;
+
+                teacher.courses.forEach(courseName => {
+                    const assignedCourse = assignedCoursesMap[courseName + '_' + teacher.id];
+
+                    const isAssigned = !!assignedCourse;
+                    const assignedId = isAssigned ? assignedCourse.id : '';
+
+                    teacherHtml += `
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${course}" id="course_${course}">
-                        <label class="form-check-label" for="course_${course}">
-                            ${course}
+                        <input class="form-check-input course-check" type="checkbox" 
+                            value="${courseName}" 
+                            data-teacher-id="${teacher.id}"
+                            data-assigned-id="${assignedId}"
+                            id="course_${courseName.replace(/\s/g, '_')}_${teacher.id}" 
+                            ${isAssigned ? 'checked' : ''}>
+                        <label class="form-check-label" for="course_${courseName.replace(/\s/g, '_')}_${teacher.id}">
+                            ${courseName}
                         </label>
                     </div>
                 `;
-            });
-        }
-    });
-}
-
-function showEnrollStudentModal() {
-    // Load classes and students
-    loadClassesForEnroll();
-    loadStudentsForEnroll();
-    new bootstrap.Modal(document.getElementById('enrollStudentModal')).show();
-}
-
-async function loadClassesForEnroll() {
-    const select = document.getElementById('enrollClassId');
-    select.innerHTML = '<option value="">Select Class</option>';
-    classes.forEach(c => {
-        select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-    });
-}
-
-async function loadStudentsForEnroll() {
-    const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
-    if (response.ok) {
-        students = await response.json();
-        const select = document.getElementById('enrollStudentId');
-        select.innerHTML = '<option value="">Select Student</option>';
-        students.forEach(s => {
-            select.innerHTML += `<option value="${s.id}">${s.full_name || s.username}</option>`;
-        });
-    }
-}
-
-async function enrollStudent() {
-    const classId = document.getElementById('enrollClassId').value;
-    const studentId = document.getElementById('enrollStudentId').value;
-    if (!classId || !studentId) {
-        alert('Please select class and student');
-        return;
-    }
-    const response = await fetch('/api/admin/classes/enroll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ class_id: classId, student_id: studentId })
-    });
-    if (response.ok) {
-        loadClasses();
-        bootstrap.Modal.getInstance(document.getElementById('enrollStudentModal')).hide();
-    }
-}
-
-function filterClasses() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('#classesTableBody tr');
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-
-function assignCourses() {
-    const classId = document.getElementById('assignClassId').value;
-    const selectedCourses = [];
-    document.querySelectorAll('#coursesList input:checked').forEach(cb => {
-        selectedCourses.push(cb.value);
-    });
-    if (!classId || selectedCourses.length === 0) {
-        alert('Please select class and courses');
-        return;
-    }
-    // Implement assignment logic
-    alert('Courses assigned (implementation needed)');
-    bootstrap.Modal.getInstance(document.getElementById('assignCoursesModal')).hide();
-}
-
-function loadClassStats() {
-    // Calculate stats from loaded classes
-    let totalStudents = 0;
-    let totalCourses = 0;
-    let totalSessions = 0;
-    classes.forEach(cls => {
-        totalStudents += cls.student_count;
-        totalCourses += cls.courses.length;
-        // Assume each class has sessions, count them
-        cls.courses.forEach(course => {
-            if (course.sessions) {
-                totalSessions += course.sessions.length;
+                });
+                container.innerHTML += teacherHtml;
             }
         });
-    });
-    document.getElementById('total-classes').textContent = classes.length;
-    document.getElementById('total-students').textContent = totalStudents;
-    document.getElementById('total-courses').textContent = totalCourses;
-    document.getElementById('total-sessions').textContent = totalSessions;
-}
+    }
 
-// Initial load
-loadClasses();
+    function showEnrollStudentModal() {
+        // Load classes and students
+        loadClassesForEnroll();
+        loadStudentsForEnroll();
+        new bootstrap.Modal(document.getElementById('enrollStudentModal')).show();
+    }
+
+    async function loadClassesForEnroll() {
+        const select = document.getElementById('enrollClassId');
+        select.innerHTML = '<option value="">Select Class</option>';
+        classes.forEach(c => {
+            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        });
+    }
+
+    async function loadStudentsForEnroll() {
+        const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
+        if (response.ok) {
+            students = await response.json();
+            const select = document.getElementById('enrollStudentId');
+            select.innerHTML = '<option value="">Select Student</option>';
+            students.forEach(s => {
+                select.innerHTML += `<option value="${s.id}">${s.full_name || s.username}</option>`;
+            });
+        }
+    }
+
+    async function enrollStudent() {
+        const classId = document.getElementById('enrollClassId').value;
+        const studentId = document.getElementById('enrollStudentId').value;
+        if (!classId || !studentId) {
+            alert('Please select class and student');
+            return;
+        }
+        const response = await fetch('/api/admin/classes/enroll', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ class_id: classId, student_id: studentId })
+        });
+        if (response.ok) {
+            loadClasses();
+            bootstrap.Modal.getInstance(document.getElementById('enrollStudentModal')).hide();
+        }
+    }
+
+    function filterClasses() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#classesTableBody tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+
+    async function assignCourses() {
+        const classId = document.getElementById('assignClassId').value;
+        if (!classId) {
+            alert('Please select a class');
+            return;
+        }
+
+        const toAdd = [];
+        const toRemove = [];
+
+        document.querySelectorAll('.course-check').forEach(cb => {
+            const isChecked = cb.checked;
+            const assignedId = cb.dataset.assignedId;
+
+            if (isChecked && !assignedId) {
+                // Needs to be added
+                toAdd.push({
+                    name: cb.value,
+                    teacher_id: parseInt(cb.dataset.teacherId)
+                });
+            } else if (!isChecked && assignedId) {
+                // Needs to be removed
+                toRemove.push(parseInt(assignedId));
+            }
+        });
+
+        if (toAdd.length === 0 && toRemove.length === 0) {
+            alert('No changes to save');
+            return;
+        }
+
+        try {
+            // Handle Additions
+            if (toAdd.length > 0) {
+                const addResponse = await fetch('/api/admin/classes/courses/assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        class_id: parseInt(classId),
+                        courses: toAdd
+                    })
+                });
+                if (!addResponse.ok) {
+                    throw new Error('Failed to add some courses');
+                }
+            }
+
+            // Handle Removals
+            if (toRemove.length > 0) {
+                // We have to do this sequentially or in parallel requests since we don't have a bulk delete
+                const deletePromises = toRemove.map(courseId =>
+                    fetch(`/api/admin/classes/${classId}/courses/${courseId}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    })
+                );
+                await Promise.all(deletePromises);
+            }
+
+            // Refresh and close
+            await loadClasses();
+            bootstrap.Modal.getInstance(document.getElementById('assignCoursesModal')).hide();
+            alert('Courses updated successfully');
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating courses: ' + error.message);
+        }
+    }
+
+    // Initial load
+    loadClasses();
 </script>
 {% endblock %}

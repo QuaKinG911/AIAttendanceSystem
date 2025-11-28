@@ -1,294 +1,130 @@
-# 🎓 AI Attendance System
+# AI Attendance System
 
-A comprehensive AI-powered attendance tracking system using computer vision for automatic student attendance monitoring in educational environments.
+A robust, automated attendance tracking system powered by computer vision and face recognition. This application allows educational institutions to streamline attendance taking, manage classes, and provide real-time analytics for students, teachers, and administrators.
 
-## ✨ Features
+## 🚀 Features
 
-- **Real-time Face Detection**: YOLOv8 and OpenCV Haar Cascade with automatic fallback
-- **Advanced Face Recognition**: FaceNet embeddings with cosine similarity matching
-- **Liveness Detection**: MediaPipe-based anti-spoofing to prevent photo/video attacks
-- **Multi-role User System**: Admin, Teacher, Student, and Parent dashboards
-- **Flexible Attendance Logic**: Configurable time windows and confidence thresholds
-- **Database Integration**: SQLAlchemy ORM with SQLite/PostgreSQL support
-- **Web Interface**: Flask-based responsive dashboards with role-based access
-- **REST API**: Complete API for integration with other systems
-- **Real-time Processing**: Camera pipeline with multi-threading support
-- **Analytics & Reporting**: ML-powered insights and performance monitoring
-- **Security Features**: JWT authentication, input validation, and secure file handling
+*   **Automated Attendance**: Uses face recognition to mark students present automatically.
+*   **Liveness Detection**: Anti-spoofing measures to prevent attendance fraud using photos or videos.
+*   **Role-Based Access**:
+    *   **Admin**: Manage users, classes, system settings, and view global analytics.
+    *   **Teacher**: Manage courses, view attendance reports, and manually override records.
+    *   **Student**: View personal attendance history and profile.
+    *   **Parent**: Monitor their child's attendance.
+*   **Class Management**: Schedule classes, manage enrollments, and track session status.
+*   **Analytics**: Detailed insights into attendance rates, lateness, and anomalies.
+*   **Notifications**: (Optional) Email and SMS alerts for absence or lateness.
 
-## 🏗️ System Architecture
+## 📋 Prerequisites
 
-```
-ai-attendance-system/
-├── src/
-│   ├── api/                    # REST API endpoints
-│   │   ├── auth.py            # Authentication endpoints
-│   │   ├── users.py           # User management
-│   │   ├── attendance.py      # Attendance operations
-│   │   ├── analytics.py       # Analytics and reporting
-│   │   └── admin.py           # Administrative functions
-│   ├── camera_pipeline/       # Real-time camera processing
-│   │   └── attendance_system.py # Main attendance logic
-│   ├── face_detection/        # Face detection modules
-│   │   └── yolo_detector.py   # YOLOv8 face detector
-│   ├── face_recognition/      # Face recognition system
-│   │   └── matcher.py         # Face matching with embeddings
-│   ├── liveness_detection/    # Anti-spoofing detection
-│   │   └── mediapipe_liveness.py # MediaPipe liveness checks
-│   ├── models.py              # Database models (SQLAlchemy)
-│   ├── config.py              # Configuration management
-│   └── web/                   # Web interface blueprints
-│       ├── auth.py            # Login/logout
-│       ├── admin.py           # Admin dashboard
-│       ├── teacher.py         # Teacher interface
-│       ├── student.py         # Student dashboard
-│       └── parent.py          # Parent access
-├── data/
-│   ├── faces/                 # Student face images by ID
-│   ├── attendance/            # Attendance records (JSON)
-│   └── students/              # Student metadata
-├── templates/                 # Jinja2 HTML templates
-├── static/                    # CSS, JS, images
-├── scripts/                   # Utility scripts
-│   ├── build_face_database.py # Build recognition database
-│   └── setup_models.py       # Model setup utilities
-├── alembic/                   # Database migrations
-├── config/                    # Configuration files
-└── requirements.txt           # Python dependencies
-```
+*   **Python 3.10+**
+*   **CMake** (Required for compiling `dlib`/`face_recognition`)
+*   **Webcam** (For attendance capturing)
 
-## 🚀 Quick Start
+## 🛠️ Installation
 
-### Prerequisites
-- Python 3.11+
-- Camera (USB/IP webcam)
-- 4GB+ RAM (8GB recommended)
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/QuaKinG911/AIAttendanceSystem.git
+    cd ai-attendance-system
+    ```
 
-### Automated Setup
-```bash
-# Clone the repository
-git clone <repository-url>
-cd ai-attendance-system
+2.  **Set up a virtual environment**
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
 
-# Run automated setup
-./setup.sh
-```
+3.  **Install system dependencies** (Linux)
+    ```bash
+    sudo apt-get update
+    sudo apt-get install -y python3-dev cmake libopenblas-dev liblapack-dev \
+        libx11-dev libgtk-3-dev python3-tk
+    ```
 
-### Manual Setup
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+4.  **Install Python dependencies**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Create required directories
-mkdir -p data/{faces,attendance,students} models logs
-
-# Run database migrations
-alembic upgrade head
-```
-
-## 📖 Usage
-
-### 1. Build Face Database
-```bash
-# Add student face images to data/faces/{student_id}/
-# Then build the recognition database
-python scripts/build_face_database.py
-```
-
-### 2. Start Web Application
-```bash
-python app.py
-```
-Access at `http://localhost:5000`
-
-**Default Credentials:**
-- **Admin**: `admin@school.edu` / `admin456`
-- **Teacher**: `teacher@school.edu` / `teacher123`
-- **Student**: `student@school.edu` / `student123`
-
-### 3. Real-time Attendance Capture
-```python
-from src.camera_pipeline.attendance_system import AttendanceSystem
-
-# Initialize system
-system = AttendanceSystem(camera_source=0)
-
-# Start attendance session for class
-system.start_session(class_id=1)
-
-# Begin processing
-system.run()
-```
+5.  **Download Face Detection Model**
+    ```bash
+    mkdir -p models
+    wget -O models/yolov8x-face-lindevs.pt \
+        https://github.com/lindevs/yolov8-face/releases/download/v0.0.0/yolov8x-face-lindevs.pt
+    ```
 
 ## ⚙️ Configuration
 
-The system uses a centralized configuration system (`src/config.py`) with support for environment variables and JSON config files.
+The system uses a centralized configuration system. You can modify settings in `config/settings.json` or use environment variables.
 
-### Key Configuration Options
+**Key Environment Variables:**
+*   `ATTENDANCE_CAMERA_SOURCE`: Camera index (default: `0`)
+*   `ATTENDANCE_DATABASE_URL`: Database connection string (default: `sqlite:///data/attendance.db`)
+*   `ATTENDANCE_CONFIDENCE_THRESHOLD`: Face recognition confidence threshold (default: `0.7`)
 
-```python
-# Camera settings
-config.set('camera.resolution.width', 1280)
-config.set('camera.fps', 30)
+## 🏃‍♂️ Usage
 
-# Recognition thresholds
-config.set('attendance.confidence_threshold', 0.7)
-config.set('recognition.tolerance', 0.6)
-
-# Liveness detection
-config.set('liveness.enabled', True)
-config.set('liveness.threshold', 0.6)
-```
-
-### Environment Variables
+### 1. Start the Application
+Run the Flask server:
 ```bash
-export ATTENDANCE_CAMERA_SOURCE=0
-export ATTENDANCE_CONFIDENCE_THRESHOLD=0.7
-export ATTENDANCE_DATABASE_URL="sqlite:///data/attendance.db"
+python app.py
 ```
+The application will be available at `http://localhost:5000`.
 
-## 🗄️ Database Schema
+### 2. Default Login Credentials
+On the first run, the system creates default users:
 
-The system uses SQLAlchemy with the following core models:
+| Role | Username | Password |
+|------|----------|----------|
+| **Admin** | `admin` | `admin456` |
+| **Teacher** | `teacher` | `teacher123` |
+| **Student** | `student` | `student123` |
 
-- **User**: Multi-role users (Student/Teacher/Admin/Parent)
-- **Class**: Academic classes/groups
-- **Course**: Scheduled courses with time/room info
-- **AttendanceSession**: Attendance capture sessions
-- **AttendanceRecord**: Individual attendance entries
-- **FaceEncoding**: Stored face embeddings
-- **Announcement**: System announcements
-- **SystemLog**: Audit logging
+### 3. Face Registration
 
-## 🔧 API Reference
-
-### Authentication
-```http
-POST /api/auth/login
-POST /api/auth/logout
-```
-
-### Attendance Management
-```http
-GET    /api/attendance/sessions
-POST   /api/attendance/start
-PUT    /api/attendance/stop
-GET    /api/attendance/records
-```
-
-### User Management
-```http
-GET    /api/users
-POST   /api/users
-PUT    /api/users/{id}
-DELETE /api/users/{id}
-```
-
-## 🧠 How It Works
-
-### Face Detection Pipeline
-1. **Camera Input**: Real-time video capture
-2. **Face Detection**: YOLOv8 identifies faces with bounding boxes
-3. **Liveness Check**: MediaPipe analyzes facial movements/blink detection
-4. **Face Recognition**: FaceNet generates 128D embeddings for matching
-5. **Attendance Logic**: Records attendance within time windows
-6. **Database Storage**: Saves records with confidence scores
-
-### Attendance Rules
-- **Time Window**: First 5 minutes of class session
-- **Confidence Threshold**: 70% minimum for automatic marking
-- **Duplicate Prevention**: One record per student per session
-- **Uncertain Matches**: Low-confidence detections flagged for review
-
-## 🛠️ Development
-
-### Code Quality
+#### Option A: Interactive Capture (Recommended)
+Use the interactive tool to capture photos from your webcam:
 ```bash
-# Format code
-make format
-
-# Lint code
-make lint
-
-# Type check
-make type-check
-
-# Run tests
-make test
-
-# Full quality check
-make quality
+python register_student.py
 ```
+Follow the on-screen prompts to enter student details and capture their face.
 
-### Database Migrations
-```bash
-# Create new migration
-alembic revision --autogenerate -m "migration message"
+#### Option B: Manual Setup
+1.  Create a directory for the student in `data/faces/`:
+    ```bash
+    mkdir -p data/faces/<username>
+    ```
+    *Note: The `<username>` must match an existing user in the database.*
 
-# Apply migrations
-alembic upgrade head
-```
+2.  Add clear photos of the student's face to that directory (JPG/PNG).
 
-## 📊 Monitoring & Analytics
+3.  Run the training script:
+    ```bash
+    python train_faces.py
+    ```
 
-- **Performance Metrics**: FPS, processing latency, accuracy rates
-- **Attendance Analytics**: Trends, patterns, predictions
-- **System Health**: Database connections, memory usage
-- **Fraud Detection**: ML-powered anomaly detection
+### 4. Taking Attendance
+1.  Log in as a **Teacher** or **Admin**.
+2.  Navigate to the **Attendance** section.
+3.  Select an active class session.
+4.  The camera feed will open. Students standing in front of the camera will be marked as "Present" automatically.
 
-## 🔒 Security
+## 📂 Project Structure
 
-- **Authentication**: JWT tokens with role-based access control
-- **Data Protection**: Bcrypt password hashing, secure file handling
-- **Input Validation**: Comprehensive validation on all inputs
-- **Audit Logging**: Complete system activity tracking
+*   `app.py`: Main entry point for the Flask application.
+*   `src/`: Source code directory.
+    *   `models.py`: Database models (User, Class, Attendance, etc.).
+    *   `config.py`: Configuration management.
+    *   `face_recognition/`: Core face detection and recognition logic.
+    *   `web/`: Flask blueprints for web routes.
+*   `data/`: Stores the SQLite database (`attendance.db`), face images, and encodings.
+*   `templates/`: HTML templates for the web interface.
+*   `static/`: CSS, JavaScript, and static assets.
+*   `train_faces.py`: Script to process images and train the face recognition model.
 
-## 🚀 Deployment
+## 🧪 Development
 
-### Production Setup
-```bash
-# Use Gunicorn for production
-gunicorn -w 4 -b 0.0.0.0:8000 src.api:create_app()
-
-# With PostgreSQL
-export DATABASE_URL="postgresql://user:pass@localhost/attendance"
-
-# Enable Redis caching
-export REDIS_URL="redis://localhost:6379"
-```
-
-### Docker Support
-```dockerfile
-FROM python:3.11-slim
-COPY . /app
-WORKDIR /app
-RUN pip install -r requirements.txt
-EXPOSE 5000
-CMD ["python", "app.py"]
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with proper tests
-4. Ensure code quality (`make quality`)
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 📞 Support
-
-- **Documentation**: See `COMPLETE_GUIDE.md` for detailed setup
-- **Issues**: Create GitHub issues for bugs/features
-- **Discussions**: Use GitHub Discussions for questions
-
----
-
-**Note**: This system is designed for educational institutions. Ensure compliance with privacy regulations (GDPR, FERPA, etc.) when deploying.
+*   **Run Tests**: `make test`
+*   **Lint Code**: `make lint`
+*   **Format Code**: `make format`

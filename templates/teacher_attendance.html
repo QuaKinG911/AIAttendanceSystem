@@ -330,7 +330,7 @@
          `;
 
                 let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
-                html += '<th>Student</th><th>Check-in Time</th><th>Status</th><th>Confidence</th><th>Actions</th>';
+                html += '<th>Student</th><th>Check-in Time</th><th>Status</th><th>Confidence</th><th class="text-center">Actions</th>';
                 html += '</tr></thead><tbody>';
 
                 records.forEach(record => {
@@ -342,7 +342,7 @@
                     <td>${time}</td>
                     <td>${statusBadge}</td>
                     <td>${record.confidence_score ? record.confidence_score.toFixed(2) : 'N/A'}</td>
-                     <td>
+                     <td class="text-center">
                          <button class="btn btn-sm btn-outline-primary" onclick="editRecord(${record.id || 'null'}, ${record.student_id}, '${record.status}', '${record.override_reason || ''}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit attendance status">
                              <i class="fas fa-edit"></i>
                          </button>

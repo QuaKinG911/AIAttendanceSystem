@@ -75,11 +75,11 @@ The application will be available at `http://localhost:5000`.
 ### 2. Default Login Credentials
 On the first run, the system creates default users:
 
-| Role | Username | Password |
+| Role | Email | Password |
 |------|----------|----------|
-| **Admin** | `admin` | `admin456` |
-| **Teacher** | `teacher` | `teacher123` |
-| **Student** | `student` | `student123` |
+| **Admin** | `admin@yzu.edu.cn` | `admin456` |
+| **Teacher** | `simon@yzu.edu` | `teacher123` |
+| **Student** | `hafid@yzu.edu.cn` | `hafid123` |
 
 ### 3. Face Registration
 

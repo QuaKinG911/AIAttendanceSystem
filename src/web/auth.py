@@ -95,6 +95,8 @@ def profile():
 
 import os
 from werkzeug.utils import secure_filename
+from src.utils.dataset_manager import save_student_photo, get_student_dir
+from flask import send_file
 
 @web_auth_bp.route('/profile/upload-photo', methods=['POST'])
 def upload_photo():
@@ -111,28 +113,32 @@ def upload_photo():
     if file:
         try:
             user_id = session['user_id']
-            filename = secure_filename(f"user_{user_id}_{file.filename}")
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+
+            # Read file bytes
+            image_bytes = file.read()
             
-            # Ensure upload directory exists
-            upload_dir = os.path.join(os.getcwd(), 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
+            # Save using dataset manager (saves to data/faces/{username}/{username}.jpg)
+            # We use username as the ID for file storage to match admin behavior
+            success, result = save_student_photo(user.username, image_bytes)
             
-            file_path = os.path.join(upload_dir, filename)
-            file.save(file_path)
+            if not success:
+                return jsonify({'error': result}), 500
             
             # Update or create FaceEncoding record
+            # We set image_path to None so the system looks in data/faces (default location)
             encoding_record = FaceEncoding.query.filter_by(student_id=user_id).first()
             if not encoding_record:
-                # Create placeholder encoding record if not exists
-                # In a real app, you'd process the face encoding here
                 encoding_record = FaceEncoding(
                     student_id=user_id,
-                    encoding=b'placeholder', # Placeholder
-                    image_path=filename
+                    encoding=b'placeholder', # Placeholder until processed
+                    image_path=None 
                 )
                 db.session.add(encoding_record)
             else:
-                encoding_record.image_path = filename
+                encoding_record.image_path = None # Clear custom upload path to use default
             
             db.session.commit()
             return jsonify({'success': True})
@@ -140,3 +146,22 @@ def upload_photo():
         except Exception as e:
             logging.error(f"Photo upload error: {str(e)}")
             return jsonify({'error': 'Failed to upload photo'}), 500
+
+@web_auth_bp.route('/profile/photo')
+def get_my_photo():
+    """Serve the current user's profile photo"""
+    if 'user_id' not in session:
+        return redirect(url_for('web_auth.login'))
+        
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    # Check data/faces/{username}/{username}.jpg
+    photo_path = os.path.join(os.getcwd(), 'data', 'faces', user.username, f"{user.username}.jpg")
+    
+    if os.path.exists(photo_path):
+        return send_file(photo_path, mimetype='image/jpeg')
+    else:
+        # Return default avatar
+        return send_file(os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg'), mimetype='image/svg+xml')

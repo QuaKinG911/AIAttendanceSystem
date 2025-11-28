@@ -9,17 +9,17 @@
   },
   "attendance": {
     "duration_minutes": 5,
-    "confidence_threshold": 0.7,
+    "confidence_threshold": 0.75,
     "liveness_threshold": 0.6
   },
   "detection": {
     "model": "yolo",
-    "confidence_threshold": 0.5,
+    "confidence_threshold": 0.4,
     "fallback_to_haar": true
   },
   "recognition": {
     "model": "facenet",
-    "tolerance": 0.6,
+    "tolerance": 0.5,
     "database_path": "data/face_encodings/face_database.pkl"
   },
   "liveness": {

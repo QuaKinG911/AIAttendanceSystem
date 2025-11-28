@@ -3,10 +3,14 @@ import json
 from typing import Dict, List, Optional, Tuple
 
 
+import logging
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 # New canonical folder for recognition reference images
 DATASET_DIR = os.path.join(PROJECT_ROOT, 'data', 'faces')
 STUDENTS_JSON = os.path.join(DATASET_DIR, 'students.json')
+
+logger = logging.getLogger(__name__)
 
 
 def ensure_dataset_dirs() -> None:
@@ -107,7 +111,7 @@ def list_students() -> List[Tuple[str, str]]:
 
 
 def save_student_photo(student_id: str, image_bytes: bytes, image_ext: str = '.jpg') -> Tuple[bool, str]:
-    """Save a photo for an existing student.
+    """Save a photo for an existing student. Supports multiple photos.
 
     Returns (ok, path_or_error)
     """
@@ -117,10 +121,29 @@ def save_student_photo(student_id: str, image_bytes: bytes, image_ext: str = '.j
 
     sdir = get_student_dir(student_id)
     os.makedirs(sdir, exist_ok=True)
-    img_path = os.path.join(sdir, f'{student_id}{image_ext}')
+    
+    # Find next available photo number
+    photo_num = 1
+    while True:
+        img_path = os.path.join(sdir, f'{student_id}_{photo_num}{image_ext}')
+        if not os.path.exists(img_path):
+            break
+        photo_num += 1
+        
     try:
         with open(img_path, 'wb') as f:
             f.write(image_bytes)
+            
+        # Trigger training to update encodings
+        try:
+            # We import here to avoid circular imports if train_faces imports this module
+            import sys
+            sys.path.append(PROJECT_ROOT)
+            from train_faces import train_faces
+            train_faces()
+        except Exception as e:
+            logger.warning(f"Failed to trigger training: {e}")
+            
         return True, img_path
     except Exception as e:
         return False, f'Failed to save image: {e}'

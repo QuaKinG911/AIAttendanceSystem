@@ -72,12 +72,41 @@ def get_classes():
 
         return jsonify(result)
 
+    elif user.role.value == 'teacher':
+        # For teachers, return classes they teach, with their courses
+        courses = Course.query.filter_by(teacher_id=user.id).all()
+        
+        # Group by class
+        classes_map = {}
+        for course in courses:
+            if course.class_id not in classes_map:
+                class_obj = Class.query.get(course.class_id)
+                if class_obj:
+                    classes_map[course.class_id] = {
+                        'id': class_obj.id,
+                        'name': class_obj.name,
+                        'courses': []
+                    }
+            
+            if course.class_id in classes_map:
+                classes_map[course.class_id]['courses'].append({
+                    'id': course.id,
+                    'name': course.name,
+                    'day_of_week': course.day_of_week,
+                    'start_time': course.start_time.strftime('%H:%M') if course.start_time else None,
+                    'end_time': course.end_time.strftime('%H:%M') if course.end_time else None,
+                    'room': course.room
+                })
+        
+        return jsonify(list(classes_map.values()))
+
     else:
-        # For other roles, return all classes (admin/teacher)
+        # For admin, return all classes
         classes = Class.query.all()
         return jsonify([{
             'id': c.id,
             'name': c.name,
+            'courses': [], # Empty list to prevent frontend errors
             'created_at': c.created_at.isoformat() if c.created_at else None
         } for c in classes])
 

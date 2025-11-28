@@ -3,73 +3,94 @@
 {% block title %}Login - AI Attendance System{% endblock %}
 
 {% block content %}
-<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, var(--accent-color), var(--primary-color));">
-    <div class="row w-100 justify-content-center">
-        <div class="col-md-8 col-lg-6 col-xl-4">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <!-- Academic Header -->
-                    <div class="text-center mb-4">
-                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                            <i class="fas fa-graduation-cap fa-2x"></i>
-                        </div>
-                        <h2 class="fw-bold text-primary mb-2">AI Attendance System</h2>
-                        <p class="text-muted mb-4">Academic Institution Portal</p>
-                    </div>
+<div class="container-fluid p-0" style="height: 100vh; overflow: hidden;">
+    <div class="row g-0 h-100">
+        <!-- Left Side: Academic Imagery & Branding -->
+        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center text-white position-relative"
+            style="background: linear-gradient(135deg, rgba(0, 40, 85, 0.95) 0%, rgba(0, 30, 60, 0.98) 100%), url('{{ url_for('static', filename='images/campus_bg.jpg') }}'); background-size: cover; background-position: center;">
 
-                    {% if error %}
-                    <div class="alert alert-danger border-0 shadow-sm">
-                        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
-                    </div>
-                    {% endif %}
-
-                    <form method="POST" class="user">
-                        <div class="form-floating mb-3">
-                            <input type="email" class="form-control form-control-lg" id="email" name="username" placeholder="name@example.com" required>
-                            <label for="email"><i class="fas fa-envelope me-2"></i>Email Address</label>
-                        </div>
-                        <div class="form-floating mb-4">
-                            <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Password" required>
-                            <label for="password"><i class="fas fa-lock me-2"></i>Password</label>
-                        </div>
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Footer Info -->
-                    <div class="text-center mt-4">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i>
-                            Secure Academic Portal | Powered by AI Technology
-                        </small>
-                    </div>
-                </div>
+            <!-- Decorative Overlay Pattern (CSS only) -->
+            <div
+                style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 30px 30px; pointer-events: none;">
             </div>
 
-            <!-- Demo Credentials Card -->
-            <div class="card mt-3 border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <h6 class="card-title text-center mb-2">
-                        <i class="fas fa-info-circle text-info me-1"></i>Demo Credentials
-                    </h6>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <small class="text-muted d-block">Admin</small>
-                            <code class="text-primary">admin@school.edu</code>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted d-block">Teacher</small>
-                            <code class="text-success">teacher@school.edu</code>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted d-block">Student</small>
-                            <code class="text-warning">student@school.edu</code>
+            <div class="position-relative z-index-1 text-center px-5">
+                <img src="{{ url_for('static', filename='images/yzu.png') }}" alt="YZU Logo" height="120"
+                    class="mb-4 drop-shadow">
+                <h1 class="display-4 fw-bold mb-3" style="font-family: var(--font-heading); color: #fff;">AI Attendance
+                    System</h1>
+                <p class="lead mb-4" style="font-weight: 300; opacity: 0.9;">Excellence in Academic Management</p>
+                <hr class="w-25 mx-auto bg-white opacity-50 mb-4">
+                <p class="small text-white-50 fst-italic">"Empowering education through intelligent technology."</p>
+            </div>
+
+            <div class="position-absolute bottom-0 w-100 text-center pb-4 text-white-50 small">
+                &copy; {{ now.year if now else 2023 }} University System. All Rights Reserved.
+            </div>
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
+            <div class="w-100 p-5" style="max-width: 500px;">
+                <!-- Mobile Logo (Visible only on small screens) -->
+                <div class="text-center d-lg-none mb-4">
+                    <img src="{{ url_for('static', filename='images/yzu.png') }}" alt="YZU Logo" height="80">
+                    <h3 class="mt-3 text-primary fw-bold">AI Attendance</h3>
+                </div>
+
+                <div class="mb-5">
+                    <h2 class="fw-bold text-primary mb-1">Welcome Back</h2>
+                    <p class="text-muted">Please sign in to access your portal.</p>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger border-0 shadow-sm mb-4 d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-circle me-2 fs-5"></i>
+                    <div>{{ error }}</div>
+                </div>
+                {% endif %}
+
+                <form method="POST" class="user-form">
+                    <div class="mb-4">
+                        <label for="email" class="form-label text-uppercase small letter-spacing-1">Email
+                            Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0 ps-3"><i
+                                    class="fas fa-envelope text-muted"></i></span>
+                            <input type="email" class="form-control border-start-0 ps-0" id="email" name="username"
+                                placeholder="name@school.edu" required style="height: 50px;">
                         </div>
                     </div>
-                    <small class="text-muted d-block text-center mt-2">Password: [role]123</small>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-uppercase small letter-spacing-1">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0 ps-3"><i
+                                    class="fas fa-lock text-muted"></i></span>
+                            <input type="password" class="form-control border-start-0 ps-0" id="password"
+                                name="password" placeholder="Enter your password" required style="height: 50px;">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="rememberMe">
+                            <label class="form-check-label small text-muted" for="rememberMe">Remember me</label>
+                        </div>
+                        <a href="#" class="small text-primary text-decoration-none fw-bold">Forgot Password?</a>
+                    </div>
+
+                    <div class="d-grid mb-4">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 shadow-sm">
+                            Sign In <i class="fas fa-arrow-right ms-2 small"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-5">
+                    <p class="small text-muted mb-0">
+                        Need help? <a href="#" class="text-primary text-decoration-none fw-bold">Contact Support</a>
+                    </p>
                 </div>
             </div>
         </div>
@@ -77,29 +98,37 @@
 </div>
 
 <style>
-.form-floating > .form-control {
-    border-radius: 10px;
-    border: 2px solid var(--border-color);
-    transition: all 0.3s ease;
-}
+    /* Custom overrides for login page */
+    body {
+        background-color: #fff;
+        /* Override base bg */
+    }
 
-.form-floating > .form-control:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-}
+    .input-group-text {
+        border-color: var(--border-color);
+    }
 
-.form-floating > label {
-    color: var(--text-color);
-    font-weight: 500;
-}
+    .form-control {
+        border-color: var(--border-color);
+        background-color: #fff;
+    }
 
-.card {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.95);
-}
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: none;
+        background-color: #fff;
+    }
 
-[data-theme="dark"] .card {
-    background: rgba(52, 73, 94, 0.95);
-}
+    .input-group:focus-within .input-group-text {
+        border-color: var(--primary-color);
+    }
+
+    .letter-spacing-1 {
+        letter-spacing: 1px;
+    }
+
+    .drop-shadow {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    }
 </style>
 {% endblock %}

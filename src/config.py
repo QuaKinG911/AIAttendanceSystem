@@ -39,7 +39,7 @@ class ConfigManager:
             "recognition": {
                 "model": os.getenv("ATTENDANCE_RECOGNITION_MODEL", "facenet"),
                 "tolerance": float(os.getenv("ATTENDANCE_RECOGNITION_TOLERANCE", "0.6")),
-                "database_path": os.getenv("ATTENDANCE_DATABASE_PATH", "data/face_encodings/face_database.pkl")
+                "database_path": os.getenv("ATTENDANCE_DATABASE_PATH", "data/face_encodings.pkl")
             },
             "liveness": {
                 "enabled": os.getenv("ATTENDANCE_LIVENESS_ENABLED", "true").lower() == "true",

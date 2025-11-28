@@ -6,9 +6,8 @@ from typing import List, Tuple, Optional, Dict, Any
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
-
+import face_recognition
 try:
-    import face_recognition
     FACE_RECOGNITION_AVAILABLE = True
     logging.info("face_recognition library loaded successfully")
 except ImportError:
@@ -185,58 +184,51 @@ class FaceMatcher:
     def extract_face_features(self, face_image: np.ndarray) -> Optional[np.ndarray]:
         """Extract face features from face image"""
         try:
-            # Validate face quality first
-            quality = self.validate_face_quality(face_image)
-            if quality['overall_score'] < 0.4:
-                logging.warning(f"Poor face quality detected: {quality}")
-                return None
-
-            # Method 1: Try face_recognition library
+            # Validate face quality first (only if face_recognition is available)
             if FACE_RECOGNITION_AVAILABLE and face_recognition is not None:
-                try:
-                    # Convert BGR to RGB
-                    rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
+                quality = self.validate_face_quality(face_image)
+                if quality['overall_score'] < 0.1:  # Lower threshold
+                    logging.warning(f"Poor face quality detected: {quality}")
+                    return None
+                
+                # Use face_recognition library if available (128-d vector)
+                # Convert BGR to RGB
+                rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
+                encodings = face_recognition.face_encodings(rgb_image)
+                if encodings:
+                    return encodings[0]
 
-                    # Extract face encoding
-                    encodings = face_recognition.face_encodings(rgb_image)
-
-                    if len(encodings) > 0:
-                        logging.debug("Extracted features using face_recognition library")
-                        return encodings[0]
-                    else:
-                        logging.warning("No face encoding found using face_recognition")
-                except Exception as e:
-                    logging.error(f"face_recognition extraction failed: {e}")
-
-            # Method 2: Fallback to simple features
-            logging.warning("Using simple feature extraction as fallback")
+            # Fallback to simple features (ResNet18)
+            logging.debug("Using simple feature extraction (ResNet18)")
             return self._extract_simple_features(face_image)
 
         except Exception as e:
             logging.error(f"Error extracting face features: {e}")
             return None
-    
+
     def _extract_simple_features(self, face_image: np.ndarray) -> Optional[np.ndarray]:
-        """Simple feature extraction as fallback"""
+        """Extract features using HOG (Histogram of Oriented Gradients)"""
         try:
-            # Resize to standard size
-            resized = cv2.resize(face_image, (64, 64))
+            # Resize to fixed size (64x128 is standard for HOG)
+            resized = cv2.resize(face_image, (64, 128))
             
-            # Convert to grayscale
-            gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+            # Initialize HOG descriptor
+            hog = cv2.HOGDescriptor()
             
-            # Apply histogram equalization
-            equalized = cv2.equalizeHist(gray)
+            # Compute HOG features
+            features = hog.compute(resized)
+            
+            # Flatten to 1D array
+            features = features.flatten().astype(np.float32)
             
             # Normalize
-            normalized = equalized / 255.0
-            
-            # Flatten to create feature vector
-            features = normalized.flatten()
+            if np.std(features) > 0:
+                features = (features - np.mean(features)) / np.std(features)
             
             return features
+
         except Exception as e:
-            logging.error(f"Error extracting simple features: {e}")
+            logging.error(f"Error extracting HOG features: {e}")
             return None
     
     def recognize_face(self, face_encoding: np.ndarray) -> Tuple[Optional[str], Optional[str], float]:
@@ -251,43 +243,46 @@ class FaceMatcher:
             return None, None, 0.0
 
         try:
-            # Method 1: face_recognition distance-based matching
-            if FACE_RECOGNITION_AVAILABLE and face_recognition is not None:
-                try:
-                    distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-                    best_match_index = np.argmin(distances)
-                    min_distance = distances[best_match_index]
-
-                    # Convert distance to confidence (lower distance = higher confidence)
-                    confidence = max(0.0, 1.0 - min_distance)
-
-                    if min_distance <= self.tolerance:
-                        student_id = self.known_face_ids[best_match_index]
-                        student_name = self.known_face_names[best_match_index]
-                        logging.info(f"Face recognized: {student_name} ({student_id}) with confidence {confidence:.3f}")
-                        return student_id, student_name, confidence
-                    else:
-                        logging.debug(f"Face not recognized: distance {min_distance:.3f} > tolerance {self.tolerance}")
-                        return None, None, confidence
-
-                except Exception as e:
-                    logging.error(f"face_recognition matching failed: {e}")
-
-            # Method 2: Fallback cosine similarity
+            # Check encoding type based on dimension
+            is_dlib_encoding = len(face_encoding) == 128
+            
             similarities = []
             for i, known_encoding in enumerate(self.known_face_encodings):
+                # Only compare encodings of the same dimension
                 if len(face_encoding) == len(known_encoding):
-                    similarity = cosine_similarity([face_encoding], [known_encoding])[0][0]
-                    similarities.append((i, similarity))
+                    if is_dlib_encoding:
+                        # For dlib (128-d), use Euclidean distance (lower is better)
+                        # We convert it to a similarity score (0-1)
+                        distance = np.linalg.norm(face_encoding - known_encoding)
+                        # Typical threshold is 0.6. Convert to similarity: 1 - (dist/threshold) or similar
+                        # Let's use a simple inversion: 1 / (1 + distance)
+                        # Distance 0 -> Sim 1.0
+                        # Distance 0.6 -> Sim 0.625
+                        similarity = 1.0 / (1.0 + distance)
+                        similarities.append((i, similarity))
+                    else:
+                        # For ResNet (512-d), use Cosine Similarity (higher is better)
+                        similarity = cosine_similarity([face_encoding], [known_encoding])[0][0]
+                        similarities.append((i, similarity))
 
             if similarities:
                 best_match_index, max_similarity = max(similarities, key=lambda x: x[1])
 
-                if max_similarity >= self.confidence_threshold:
+                # Dynamic threshold based on method
+                if is_dlib_encoding:
+                    # Use configured threshold (converted to similarity if needed)
+                    # self.confidence_threshold is likely a similarity score (0.7 default)
+                    threshold = self.confidence_threshold
+                else:
+                    threshold = 0.30  # Lowered for HOG features
+
+                if max_similarity >= threshold:
                     student_id = self.known_face_ids[best_match_index]
                     student_name = self.known_face_names[best_match_index]
+                    logging.info(f"Face recognized: {student_name} ({student_id}) with similarity {max_similarity:.3f}")
                     return student_id, student_name, max_similarity
                 else:
+                    logging.debug(f"Face not recognized: similarity {max_similarity:.3f} < threshold {threshold}")
                     return None, None, max_similarity
 
             return None, None, 0.0

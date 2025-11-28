@@ -4,11 +4,14 @@ import redis
 from flask_caching import Cache
 import os
 
+import logging
+
 # Redis configuration
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # Initialize Redis client
 redis_client = redis.from_url(REDIS_URL)
+logger = logging.getLogger(__name__)
 
 # Flask-Caching configuration
 cache_config = {
@@ -86,7 +89,7 @@ def invalidate_user_cache(user_id):
             keys_to_delete.extend(matching_keys)
     except Exception as e:
         # Log error but don't fail the operation
-        print(f"Error finding cache keys to invalidate: {e}")
+        logger.error(f"Error finding cache keys to invalidate: {e}")
 
     if keys_to_delete:
         redis_client.delete(*keys_to_delete)

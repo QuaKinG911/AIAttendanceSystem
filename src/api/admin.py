@@ -10,7 +10,10 @@ import pandas as pd
 from io import BytesIO
 from functools import wraps
 
+import logging
+
 admin_bp = Blueprint('admin', __name__)
+logger = logging.getLogger(__name__)
 
 def admin_or_session_required(f):
     """Decorator that allows either JWT auth or session auth for admin users"""
@@ -119,9 +122,15 @@ def get_users():
 def create_user():
     """Create a new user"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
+        data = {}
+        if request.content_type.startswith('application/json'):
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+        elif request.content_type.startswith('multipart/form-data'):
+            data = request.form.to_dict()
+        else:
+            return jsonify({'error': 'Unsupported content type'}), 415
 
         # Check if email already exists
         if User.query.filter_by(email=data['email']).first():
@@ -157,6 +166,16 @@ def create_user():
         db.session.add(user)
         db.session.commit()
 
+        # Handle file upload if present
+        if 'face_image' in request.files:
+            file = request.files['face_image']
+            if file and file.filename:
+                from src.utils.dataset_manager import save_student_photo
+                # Save using username as ID
+                success, result = save_student_photo(user.username, file.read(), '.' + file.filename.split('.')[-1])
+                if not success:
+                    logger.warning(f"Failed to save photo for {user.username}: {result}")
+
         return jsonify({'message': 'User created successfully', 'user_id': user.id}), 201
 
     except Exception as e:
@@ -168,8 +187,30 @@ def create_user():
 def update_user(user_id):
     """Update a user"""
     try:
+        logger.info(f"Updating user {user_id}")
         user = User.query.get_or_404(user_id)
-        data = request.get_json()
+
+        # Handle both JSON and form data
+        if request.content_type.startswith('application/json'):
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+        elif request.content_type.startswith('multipart/form-data'):
+            data = request.form.to_dict()
+            # Handle file upload
+            if 'face_image' in request.files:
+                file = request.files['face_image']
+                if file and file.filename:
+                    # Save the image
+                    from src.utils.dataset_manager import save_student_photo
+                    # Save using username as ID
+                    success, result = save_student_photo(user.username, file.read(), '.' + file.filename.split('.')[-1])
+                    if not success:
+                        return jsonify({'error': result}), 500
+        else:
+            return jsonify({'error': 'Unsupported content type'}), 415
+
+        logger.debug(f"Data: {data}")
 
         if 'email' in data and data['email'] != user.email:
             if User.query.filter_by(email=data['email']).first():
@@ -179,7 +220,11 @@ def update_user(user_id):
         if 'username' in data:
             user.username = data['username']
         if 'role' in data:
-            user.role = UserRole(data['role'])
+            logger.info(f"Setting role to {data['role']}")
+            try:
+                user.role = UserRole(data['role'])
+            except ValueError as e:
+                return jsonify({'error': f'Invalid role: {data["role"]}'}), 400
         if 'password' in data and data['password']:
             user.set_password(data['password'])
 
@@ -205,10 +250,12 @@ def update_user(user_id):
             user.courses = data['courses']
 
         db.session.commit()
+        logger.info("User updated successfully")
 
         return jsonify({'message': 'User updated successfully'})
 
     except Exception as e:
+        logger.error(f"Error updating user: {e}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
@@ -217,13 +264,28 @@ def update_user(user_id):
 def delete_user(user_id):
     """Delete a user"""
     try:
+        logger.info(f"Deleting user {user_id}")
         user = User.query.get_or_404(user_id)
+
+        # Delete related records first
+        # Delete attendance records
+        AttendanceRecord.query.filter_by(student_id=user_id).delete()
+        # Delete enrollments
+        Enrollment.query.filter_by(student_id=user_id).delete()
+        # If teacher, delete courses
+        if user.role == UserRole.TEACHER:
+            Course.query.filter_by(teacher_id=user_id).delete()
+        # Delete face encodings
+        FaceEncoding.query.filter_by(student_id=user_id).delete()
+
         db.session.delete(user)
         db.session.commit()
+        logger.info("User deleted successfully")
 
         return jsonify({'message': 'User deleted successfully'})
 
     except Exception as e:
+        logger.error(f"Error deleting user: {e}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
@@ -686,33 +748,66 @@ from src.models import FaceEncoding
 def get_student_photo(student_id):
     """Get student photo"""
     try:
-        student = User.query.filter_by(id=student_id, role=UserRole.STUDENT).first_or_404()
-        
+        logger.debug(f"Getting photo for student {student_id}")
+        student = User.query.filter_by(id=student_id, role=UserRole.STUDENT).first()
+        if not student:
+            logger.debug(f"Student {student_id} not found, returning default")
+            # Return default avatar
+            default_path = os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg')
+            if os.path.exists(default_path):
+                return send_file(default_path, mimetype='image/svg+xml')
+            else:
+                return jsonify({'error': 'Default avatar not found'}), 404
+
+        logger.debug(f"Found student: {student.username}, id: {student.id}")
+
         # Check FaceEncoding for image path
         encoding = FaceEncoding.query.filter_by(student_id=student.id).first()
-        
+        logger.debug(f"Encoding: {encoding}")
+
         if encoding and encoding.image_path:
             # Check if file exists in uploads
             upload_path = os.path.join(os.getcwd(), 'uploads', encoding.image_path)
+            logger.debug(f"Upload path: {upload_path}, exists: {os.path.exists(upload_path)}")
             if os.path.exists(upload_path):
                 return send_file(upload_path, mimetype='image/jpeg')
-        
+
         # Fallback to old path or default
-        old_path = f"data/faces/{student.username}/{student.username}.jpg"
-        if os.path.exists(old_path):
-            return send_file(old_path, mimetype='image/jpeg')
+        if student.username:
+            old_path = f"data/faces/{student.username}/{student.username}.jpg"
+            logger.debug(f"Old path: {old_path}, exists: {os.path.exists(old_path)}")
+            # Construct absolute path to be safe
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            base_path = os.path.join(project_root, 'data', 'faces', student.username)
             
-        # Return default avatar (ensure this file exists or return a placeholder)
-        # If static/images/default-avatar.svg doesn't exist, we might want to return a 404 or a generated image
-        # For now, let's try to return a simple placeholder if the file is missing
-        default_path = os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg')
+            logger.debug(f"Searching for photo in: {base_path}")
+            
+            # Check extensions
+            for ext in ['.jpg', '.jpeg', '.png', '.JPG', '.PNG']:
+                file_path = os.path.join(base_path, f"{student.username}{ext}")
+                if os.path.exists(file_path):
+                    logger.debug(f"Sending photo from {file_path}")
+                    return send_file(file_path, mimetype='image/jpeg')
+        else:
+            logger.warning("Student has no username")
+
+        # Return default avatar
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        default_path = os.path.join(project_root, 'static', 'images', 'default-avatar.svg')
+        logger.debug(f"Default path: {default_path}, exists: {os.path.exists(default_path)}")
         if os.path.exists(default_path):
              return send_file(default_path, mimetype='image/svg+xml')
         else:
             return jsonify({'error': 'Photo not found'}), 404
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting photo: {e}")
+        # On error, return default avatar
+        default_path = os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg')
+        if os.path.exists(default_path):
+            return send_file(default_path, mimetype='image/svg+xml')
+        else:
+            return jsonify({'error': 'Photo not found'}), 404
 
 @admin_bp.route('/attendance/analysis', methods=['GET'])
 @admin_or_session_required
@@ -799,5 +894,99 @@ def export_attendance():
             'total_records': len(data)
         })
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/reload-face-database', methods=['POST'])
+@admin_or_session_required
+def reload_face_database():
+    """Reload the face recognition database"""
+    try:
+        # Import here to avoid circular imports
+        from src.camera_pipeline.attendance_system import AttendanceSystem
+        # Note: This reloads for the current process, but if multiple instances, need broadcast
+        # For now, assume single instance
+        system = AttendanceSystem()  # Create temp instance to reload global matcher?
+        # Actually, better to reload the global matcher if shared
+        # But for simplicity, just retrain
+        import sys
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        sys.path.append(project_root)
+        from train_faces import train_faces
+        train_faces(incremental=False)
+        
+        # Reload models in attendance API
+        from src.api.attendance import reload_models
+        reload_models()
+        
+        return jsonify({'success': True, 'message': 'Face database reloaded'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/enroll-video', methods=['POST'])
+@admin_or_session_required
+def enroll_video():
+    """Process video enrollment for a student"""
+    try:
+        if 'video' not in request.files:
+            return jsonify({'error': 'No video file provided'}), 400
+        
+        video_file = request.files['video']
+        student_id = request.form.get('student_id')
+        
+        if not student_id:
+            return jsonify({'error': 'Student ID required'}), 400
+        
+        # Verify student exists
+        student = User.query.filter_by(username=student_id, role=UserRole.STUDENT).first()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        # Save video temporarily
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
+        video_path = os.path.join(temp_dir, 'enrollment.webm')
+        video_file.save(video_path)
+        
+        # Process video
+        from src.utils.video_processor import VideoProcessor
+        processor = VideoProcessor()
+        
+        faces_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'faces')
+        success, message, frames_extracted = processor.process_enrollment_video(
+            video_path, student_id, faces_dir
+        )
+        
+        # Cleanup
+        processor.cleanup_temp_file(video_path)
+        try:
+            os.rmdir(temp_dir)
+        except:
+            pass
+        
+        if not success:
+            return jsonify({'error': message}), 400
+        
+        # Trigger training
+        try:
+            import sys
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            sys.path.append(project_root)
+            from train_faces import train_faces
+            train_faces(incremental=False)
+            
+            # Reload models in attendance API
+            from src.api.attendance import reload_models
+            reload_models()
+        except Exception as e:
+            logger.warning(f"Failed to trigger training: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'frames_extracted': frames_extracted
+        })
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500

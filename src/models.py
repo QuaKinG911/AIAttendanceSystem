@@ -145,6 +145,7 @@ class AttendanceSession(db.Model):
     status = Column(Enum(SessionStatus), default=SessionStatus.SCHEDULED, nullable=False)
     present_window_minutes = Column(Integer, default=5, nullable=False)  # Minutes after start for present
     late_window_minutes = Column(Integer, default=15, nullable=False)    # Minutes after present window for late
+    auto_end_time = Column(Time, nullable=True)
 
     # Relationships
     class_ = relationship('Class', back_populates='sessions')

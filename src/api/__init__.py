@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_session import Session
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -25,9 +26,10 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+    db_path = os.path.join(project_root, 'data', 'attendance.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
         'DATABASE_URL',
-        'postgresql://attendance_user:attendance_pass@127.0.0.1/ai_attendance'
+        f'sqlite:///{db_path}'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SESSION_TYPE'] = 'filesystem'
@@ -35,10 +37,11 @@ def create_app():
     app.config['SESSION_USE_SIGNER'] = True
 
     # Initialize extensions
-    CORS(app)
+    CORS(app, supports_credentials=True, origins=["http://localhost:5000", "http://127.0.0.1:5000"])
     JWTManager(app)
     limiter = Limiter(key_func=get_remote_address)
     limiter.init_app(app)
+    Session(app)
     db.init_app(app)
 
     # Register blueprints

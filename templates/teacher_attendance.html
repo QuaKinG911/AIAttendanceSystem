@@ -13,30 +13,14 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-graduation-cap"></i> My Classes</h5>
-            </div>
-            <div class="card-body">
-                <div id="classes-container">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-calendar-check"></i> Attendance Sessions</h5>
-                 <button class="btn btn-success btn-sm" onclick="showStartSessionModal()" data-bs-toggle="tooltip" data-bs-placement="top" title="Start a new attendance session with custom time windows">
-                     <i class="fas fa-plus"></i> Start Session
-                 </button>
+                <button class="btn btn-success btn-sm" onclick="showStartSessionModal()" data-bs-toggle="tooltip"
+                    data-bs-placement="top" title="Start a new attendance session">
+                    <i class="fas fa-plus"></i> Start Session
+                </button>
             </div>
             <div class="card-body">
                 <div id="sessions-container">
@@ -68,196 +52,166 @@
                     </div>
                 </div>
             </div>
-    </div>
-</div>
-
-<!-- Start Session Modal -->
-<div class="modal fade" id="startSessionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Start Attendance Session</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted">Configure the time windows for attendance marking:</p>
-                <form id="startSessionForm">
-                    <div class="mb-3">
-                        <label for="sessionClassId" class="form-label">Class</label>
-                        <select class="form-control" id="sessionClassId" required>
-                            <option value="">Select a class</option>
-                            <!-- Classes will be loaded here -->
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="presentWindow" class="form-label">Present Window (minutes)</label>
-                        <input type="number" class="form-control" id="presentWindow" value="5" min="1" max="60" required>
-                        <small class="form-text text-muted">Students detected within this time after session start are marked as present</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="lateWindow" class="form-label">Late Window (minutes)</label>
-                        <input type="number" class="form-control" id="lateWindow" value="15" min="1" max="120" required>
-                        <small class="form-text text-muted">Students detected after present window but within this time are marked as late</small>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="startSession()">Start Session</button>
-            </div>
         </div>
     </div>
-</div>
 
-<!-- Edit Record Modal -->
-<div class="modal fade" id="editRecordModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Attendance Record</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editRecordForm">
-                    <input type="hidden" id="editRecordId">
-                    <div class="mb-3">
-                        <label for="editStatus" class="form-label">Status</label>
-                        <select class="form-control" id="editStatus" required>
-                            <option value="present">Present</option>
-                            <option value="late">Late</option>
-                            <option value="absent">Absent</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editOverrideReason" class="form-label">Override Reason (optional)</label>
-                        <textarea class="form-control" id="editOverrideReason" rows="3" placeholder="Reason for manual override"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="updateRecord()">Update Record</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-let currentSessionId = null;
-let teacherClasses = [];
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadTeacherClasses();
-    loadAttendanceSessions();
-});
-
-// Keyboard shortcuts for attendance management
-document.addEventListener('keydown', function(event) {
-    // Ctrl+N to start new session
-    if (event.ctrlKey && event.key === 'n') {
-        event.preventDefault();
-        showStartSessionModal();
-    }
-
-    // Ctrl+S to save in modals
-    if (event.ctrlKey && event.key === 's') {
-        event.preventDefault();
-        const activeModal = document.querySelector('.modal.show');
-        if (activeModal) {
-            const saveBtn = activeModal.querySelector('.btn-success, .btn-primary');
-            if (saveBtn && !saveBtn.disabled) {
-                saveBtn.click();
-            }
-        }
-    }
-});
-
-function loadTeacherClasses() {
-    fetch('/api/classes', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 403) {
-                window.location.href = '/login';
-                return [];
-            }
-        })
-        .then(data => {
-            if (data) {
-                teacherClasses = data;
-                displayClasses(data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading classes:', error);
-        });
-}
-
-function displayClasses(classes) {
-    const container = document.getElementById('classes-container');
-
-    if (classes.length === 0) {
-        container.innerHTML = '<p class="text-muted">No classes assigned.</p>';
-        return;
-    }
-
-    let html = '<div class="list-group">';
-    classes.forEach(cls => {
-        html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="mb-1">${cls.name}</h6>
-                    <small class="text-muted">${cls.courses.length} session${cls.courses.length !== 1 ? 's' : ''} per week</small>
+    <!-- Start Session Modal -->
+    <div class="modal fade" id="startSessionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Start Attendance Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                 <button class="btn btn-sm btn-success" onclick="startQuickSession(${cls.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Start attendance session immediately with default settings">
-                     <i class="fas fa-play"></i> Quick Start
-                 </button>
+                <div class="modal-body">
+                    <p class="text-muted">Select the class to start attendance for:</p>
+                    <form id="startSessionForm">
+                        <div class="mb-3">
+                            <label for="sessionClassId" class="form-label">Class</label>
+                            <select class="form-control" id="sessionClassId" required>
+                                <option value="">Select a class</option>
+                                <!-- Classes will be loaded here -->
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="startSession()">Start Session</button>
+                </div>
             </div>
-        `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
+        </div>
+    </div>
 
-function loadAttendanceSessions() {
-    fetch('/api/attendance/sessions', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 403) {
-                window.location.href = '/login';
-                return [];
-            }
-        })
-        .then(data => {
-            if (data) {
-                displaySessions(data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading sessions:', error);
+    <!-- Edit Record Modal -->
+    <div class="modal fade" id="editRecordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Attendance Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editRecordForm">
+                        <input type="hidden" id="editRecordId">
+                        <input type="hidden" id="editStudentId">
+                        <div class="mb-3">
+                            <label for="editStatus" class="form-label">Status</label>
+                            <select class="form-control" id="editStatus" required>
+                                <option value="present">Present</option>
+                                <option value="late">Late</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editOverrideReason" class="form-label">Override Reason (optional)</label>
+                            <textarea class="form-control" id="editOverrideReason" rows="3"
+                                placeholder="Reason for manual override"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateRecord()">Update Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block extra_scripts %}
+    <script>
+        let currentSessionId = null;
+        let teacherClasses = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadTeacherClasses();
+            loadAttendanceSessions();
         });
-}
 
-function displaySessions(sessions) {
-    const container = document.getElementById('sessions-container');
+        // Keyboard shortcuts for attendance management
+        document.addEventListener('keydown', function (event) {
+            // Ctrl+N to start new session
+            if (event.ctrlKey && event.key === 'n') {
+                event.preventDefault();
+                showStartSessionModal();
+            }
 
-    if (sessions.length === 0) {
-        container.innerHTML = '<p class="text-muted">No attendance sessions found.</p>';
-        return;
-    }
+            // Ctrl+S to save in modals
+            if (event.ctrlKey && event.key === 's') {
+                event.preventDefault();
+                const activeModal = document.querySelector('.modal.show');
+                if (activeModal) {
+                    const saveBtn = activeModal.querySelector('.btn-success, .btn-primary');
+                    if (saveBtn && !saveBtn.disabled) {
+                        saveBtn.click();
+                    }
+                }
+            }
+        });
 
-    let html = '<div class="list-group">';
-    sessions.forEach(session => {
-        const startTime = session.start_time ? new Date(session.start_time).toLocaleTimeString() : 'N/A';
-        const endTime = session.end_time ? new Date(session.end_time).toLocaleTimeString() : 'N/A';
-        const statusBadge = session.status === 'active' ? '<span class="badge bg-success">Active</span>' :
-                           session.status === 'completed' ? '<span class="badge bg-primary">Completed</span>' :
-                           '<span class="badge bg-secondary">' + session.status + '</span>';
+        function loadTeacherClasses() {
+            fetch('/api/classes', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 403) {
+                        window.location.href = '/login';
+                        return [];
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        teacherClasses = data;
+                        displayClasses(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                });
+        }
 
-        html += `
+        function displayClasses(classes) {
+            // No longer displaying classes list in sidebar
+        }
+
+        function loadAttendanceSessions() {
+            fetch('/api/attendance/sessions', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 403) {
+                        window.location.href = '/login';
+                        return [];
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        displaySessions(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sessions:', error);
+                });
+        }
+
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessions-container');
+
+            if (sessions.length === 0) {
+                container.innerHTML = '<p class="text-muted">No attendance sessions found.</p>';
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            sessions.forEach(session => {
+                const startTime = session.start_time ? new Date(session.start_time).toLocaleTimeString() : 'N/A';
+                const endTime = session.end_time ? new Date(session.end_time).toLocaleTimeString() : 'N/A';
+                const statusBadge = session.status === 'active' ? '<span class="badge bg-success">Active</span>' :
+                    session.status === 'completed' ? '<span class="badge bg-primary">Completed</span>' :
+                        '<span class="badge bg-secondary">' + session.status + '</span>';
+
+                html += `
             <div class="list-group-item">
                 <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1">${session.class_name} ${statusBadge}</h6>
@@ -277,270 +231,278 @@ function displaySessions(sessions) {
                      ${session.status === 'active' ? `<button class="btn btn-sm btn-outline-warning" onclick="endSession(${session.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Stop the active attendance session">
                          <i class="fas fa-stop"></i> End Session
                      </button>` : ''}
+                     <button class="btn btn-sm btn-outline-danger" onclick="deleteSession(${session.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete this session and all its records">
+                         <i class="fas fa-trash"></i>
+                     </button>
                 </div>
             </div>
         `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function showStartSessionModal() {
-    // Populate class dropdown
-    const classSelect = document.getElementById('sessionClassId');
-    classSelect.innerHTML = '<option value="">Select a class</option>';
-    teacherClasses.forEach(cls => {
-        classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
-    });
-
-    new bootstrap.Modal(document.getElementById('startSessionModal')).show();
-}
-
-function startQuickSession(classId) {
-    if (!confirm('Start a manual attendance session for this class?')) return;
-
-    fetch('/api/attendance/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ class_id: classId })
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to start session'); });
-        }
-    })
-    .then(data => {
-        alert('Session started successfully!');
-        loadAttendanceSessions();
-    })
-    .catch(error => {
-        console.error('Error starting session:', error);
-        alert('Error: ' + error.message);
-    });
-}
-
-function startSession() {
-    const classId = document.getElementById('sessionClassId').value;
-    const presentWindow = document.getElementById('presentWindow').value;
-    const lateWindow = document.getElementById('lateWindow').value;
-
-    if (!classId) {
-        alert('Please select a class');
-        return;
-    }
-
-    if (!presentWindow || !lateWindow) {
-        alert('Please set both present and late time windows');
-        return;
-    }
-
-    const sessionData = {
-        class_id: parseInt(classId),
-        present_window: parseInt(presentWindow),
-        late_window: parseInt(lateWindow)
-    };
-
-    fetch('/api/attendance/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(sessionData)
-    })
-    .then(response => {
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('startSessionModal')).hide();
-            alert('Session started successfully!');
-            loadAttendanceSessions();
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to start session'); });
-        }
-    })
-    .catch(error => {
-        console.error('Error starting session:', error);
-        alert('Error: ' + error.message);
-    });
-}
-
-function viewSessionDetails(sessionId) {
-    currentSessionId = sessionId;
-    loadSessionDetails(sessionId);
-}
-
-function loadSessionDetails(sessionId) {
-    const container = document.getElementById('session-details');
-    const actionsContainer = document.getElementById('session-actions');
-
-    container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-    fetch(`/api/attendance/sessions/${sessionId}/records`, { credentials: 'include' })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to load records'); });
-        }
-    })
-    .then(records => {
-        if (records.length === 0) {
-            container.innerHTML = '<div class="alert alert-info">No attendance records for this session.</div>';
-            actionsContainer.innerHTML = '';
-            return;
+            });
+            html += '</div>';
+            container.innerHTML = html;
         }
 
-        // Show action buttons
-        actionsContainer.innerHTML = `
-            <button class="btn btn-sm btn-outline-success" onclick="exportSessionCSV(${sessionId})" data-bs-toggle="tooltip" data-bs-placement="top" title="Download attendance data as CSV file">
-                <i class="fas fa-download"></i> Export CSV
-            </button>
-        `;
+        function showStartSessionModal() {
+            // Populate class dropdown
+            const classSelect = document.getElementById('sessionClassId');
+            classSelect.innerHTML = '<option value="">Select a class</option>';
+            teacherClasses.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
 
-        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
-        html += '<th>Student</th><th>Check-in Time</th><th>Status</th><th>Confidence</th><th>Actions</th>';
-        html += '</tr></thead><tbody>';
+            new bootstrap.Modal(document.getElementById('startSessionModal')).show();
+        }
 
-        records.forEach(record => {
-            const time = record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : 'N/A';
-            const statusBadge = getStatusBadge(record.status);
-            html += `
+        function startQuickSession(classId) {
+            if (!confirm('Start a manual attendance session for this class?')) return;
+
+            fetch('/api/attendance/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ class_id: classId })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to start session'); });
+                    }
+                })
+                .then(data => {
+                    alert('Session started successfully!');
+                    loadAttendanceSessions();
+                    if (data.session_id) {
+                        viewSessionDetails(data.session_id);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error starting session:', error);
+                    alert('Error: ' + error.message);
+                });
+        }
+
+        function startSession() {
+            const classId = document.getElementById('sessionClassId').value;
+
+            if (!classId) {
+                alert('Please select a class');
+                return;
+            }
+
+            // Redirect to live attendance page with class_id
+            window.location.href = `/teacher/live-attendance?class_id=${classId}`;
+        }
+
+        function viewSessionDetails(sessionId) {
+            currentSessionId = sessionId;
+            loadSessionDetails(sessionId);
+        }
+
+        function loadSessionDetails(sessionId) {
+            const container = document.getElementById('session-details');
+            const actionsContainer = document.getElementById('session-actions');
+
+            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            fetch(`/api/attendance/sessions/${sessionId}/records`, { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to load records'); });
+                    }
+                })
+                .then(records => {
+                    if (records.length === 0) {
+                        container.innerHTML = '<div class="alert alert-info">No attendance records for this session.</div>';
+                        actionsContainer.innerHTML = '';
+                        return;
+                    }
+
+                    // Show action buttons
+                    actionsContainer.innerHTML = `
+             <a href="/teacher/live-attendance" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Start live camera attendance for this session">
+                 <i class="fas fa-video"></i> Live Attendance
+             </a>
+             <button class="btn btn-sm btn-outline-success" onclick="exportSessionCSV(${sessionId})" data-bs-toggle="tooltip" data-bs-placement="top" title="Download attendance data as CSV file">
+                 <i class="fas fa-download"></i> Export CSV
+             </button>
+         `;
+
+                    let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
+                    html += '<th>Student</th><th>Check-in Time</th><th>Status</th><th>Confidence</th><th>Actions</th>';
+                    html += '</tr></thead><tbody>';
+
+                    records.forEach(record => {
+                        const time = record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : 'N/A';
+                        const statusBadge = getStatusBadge(record.status);
+                        html += `
                 <tr>
                     <td>${record.student_name}<br><small class="text-muted">${record.student_email}</small></td>
                     <td>${time}</td>
                     <td>${statusBadge}</td>
                     <td>${record.confidence_score ? record.confidence_score.toFixed(2) : 'N/A'}</td>
                      <td>
-                         <button class="btn btn-sm btn-outline-primary" onclick="editRecord(${record.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit attendance status and add override reason">
+                         <button class="btn btn-sm btn-outline-primary" onclick="editRecord(${record.id || 'null'}, ${record.student_id}, '${record.status}', '${record.override_reason || ''}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit attendance status">
                              <i class="fas fa-edit"></i>
                          </button>
                      </td>
                 </tr>
             `;
-        });
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-    })
-    .catch(error => {
-        console.error('Error loading session details:', error);
-        container.innerHTML = '<div class="alert alert-danger">Error loading attendance records.</div>';
-    });
-}
-
-function getStatusBadge(status) {
-    switch(status) {
-        case 'present': return '<span class="badge bg-success">Present</span>';
-        case 'late': return '<span class="badge bg-warning">Late</span>';
-        case 'absent': return '<span class="badge bg-danger">Absent</span>';
-        default: return '<span class="badge bg-secondary">' + status + '</span>';
-    }
-}
-
-function exportSessionCSV(sessionId) {
-    fetch(`/api/analytics/export?session_id=${sessionId}`, { credentials: 'include' })
-    .then(response => {
-        if (response.ok) {
-            return response.blob();
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to export'); });
+                    });
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading session details:', error);
+                    container.innerHTML = '<div class="alert alert-danger">Error loading attendance records.</div>';
+                });
         }
-    })
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance_session_${sessionId}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    })
-    .catch(error => {
-        console.error('Error exporting CSV:', error);
-        alert('Error: ' + error.message);
-    });
-}
 
-function endSession(sessionId) {
-    if (!confirm('Are you sure you want to end this attendance session?')) return;
+        function getStatusBadge(status) {
+            // Capitalize first letter
+            const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1);
 
-    fetch(`/api/attendance/sessions/${sessionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'completed' })
-    })
-    .then(response => {
-        if (response.ok) {
-            alert('Session ended successfully!');
-            loadAttendanceSessions();
-            if (currentSessionId === sessionId) {
-                document.getElementById('session-details').innerHTML = '<div class="alert alert-info">Select a session to view attendance records.</div>';
-                document.getElementById('session-actions').innerHTML = '';
-                currentSessionId = null;
+            switch (status) {
+                case 'present': return `<span class="text-success fw-bold">${formattedStatus}</span>`;
+                case 'late': return `<span class="text-warning fw-bold">${formattedStatus}</span>`;
+                case 'absent': return `<span class="text-danger fw-bold">${formattedStatus}</span>`;
+                default: return `<span class="text-secondary fw-bold">${formattedStatus}</span>`;
             }
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to end session'); });
         }
-    })
-    .catch(error => {
-        console.error('Error ending session:', error);
-        alert('Error: ' + error.message);
-    });
-}
 
-function editRecord(recordId) {
-    // First, get the record details
-    fetch(`/api/attendance/records/${recordId}`, { credentials: 'include' })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to load record'); });
+        function exportSessionCSV(sessionId) {
+            fetch(`/api/analytics/export?session_id=${sessionId}`, { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to export'); });
+                    }
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `attendance_session_${sessionId}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error exporting CSV:', error);
+                    alert('Error: ' + error.message);
+                });
         }
-    })
-    .then(record => {
-        document.getElementById('editRecordId').value = record.id;
-        document.getElementById('editStatus').value = record.status;
-        document.getElementById('editOverrideReason').value = record.override_reason || '';
 
-        new bootstrap.Modal(document.getElementById('editRecordModal')).show();
-    })
-    .catch(error => {
-        console.error('Error loading record:', error);
-        alert('Error: ' + error.message);
-    });
-}
+        function endSession(sessionId) {
+            if (!confirm('Are you sure you want to end this attendance session?')) return;
 
-function updateRecord() {
-    const recordId = document.getElementById('editRecordId').value;
-    const status = document.getElementById('editStatus').value;
-    const overrideReason = document.getElementById('editOverrideReason').value;
+            fetch(`/api/attendance/sessions/${sessionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ status: 'completed' })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Session ended successfully!');
+                        loadAttendanceSessions();
+                        if (currentSessionId === sessionId) {
+                            document.getElementById('session-details').innerHTML = '<div class="alert alert-info">Select a session to view attendance records.</div>';
+                            document.getElementById('session-actions').innerHTML = '';
+                            currentSessionId = null;
+                        }
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to end session'); });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error ending session:', error);
+                    alert('Error: ' + error.message);
+                });
+        }
 
-    const updates = {
-        status: status,
-        override_reason: overrideReason
-    };
+        function deleteSession(sessionId) {
+            if (!confirm('Are you sure you want to DELETE this session? This will remove all attendance records associated with it. This action cannot be undone.')) return;
 
-    fetch(`/api/attendance/records/${recordId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(updates)
-    })
-    .then(response => {
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('editRecordModal')).hide();
-            if (currentSessionId) {
-                loadSessionDetails(currentSessionId); // Refresh the details
+            fetch(`/api/attendance/sessions/${sessionId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Session deleted successfully!');
+                        loadAttendanceSessions();
+                        if (currentSessionId === sessionId) {
+                            document.getElementById('session-details').innerHTML = '<div class="alert alert-info">Select a session to view attendance records.</div>';
+                            document.getElementById('session-actions').innerHTML = '';
+                            currentSessionId = null;
+                        }
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to delete session'); });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting session:', error);
+                    alert('Error: ' + error.message);
+                });
+        }
+
+        function editRecord(recordId, studentId, status, overrideReason) {
+            document.getElementById('editRecordId').value = recordId;
+            document.getElementById('editStudentId').value = studentId;
+            document.getElementById('editStatus').value = status;
+            document.getElementById('editOverrideReason').value = overrideReason === 'null' ? '' : overrideReason;
+
+            new bootstrap.Modal(document.getElementById('editRecordModal')).show();
+        }
+
+        function updateRecord() {
+            const recordId = document.getElementById('editRecordId').value;
+            const studentId = document.getElementById('editStudentId').value;
+            const status = document.getElementById('editStatus').value;
+            const overrideReason = document.getElementById('editOverrideReason').value;
+
+            const updates = {
+                status: status,
+                override_reason: overrideReason
+            };
+
+            let url, method;
+
+            if (recordId && recordId !== 'null') {
+                // Update existing record
+                url = `/api/attendance/records/${recordId}`;
+                method = 'PUT';
+            } else {
+                // Create new record
+                url = `/api/attendance/sessions/${currentSessionId}/records`;
+                method = 'POST';
+                updates.student_id = studentId;
             }
-            alert('Record updated successfully!');
-        } else {
-            return response.json().then(err => { throw new Error(err.error || 'Failed to update record'); });
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(updates)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        bootstrap.Modal.getInstance(document.getElementById('editRecordModal')).hide();
+                        if (currentSessionId) {
+                            loadSessionDetails(currentSessionId); // Refresh the details
+                        }
+                        alert('Record updated successfully!');
+                    } else {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to update record'); });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating record:', error);
+                    alert('Error: ' + error.message);
+                });
         }
-    })
-    .catch(error => {
-        console.error('Error updating record:', error);
-        alert('Error: ' + error.message);
-    });
-}
-</script>
-{% endblock %}
+    </script>
+    {% endblock %}

@@ -15,12 +15,8 @@
                         <div class="mb-3 position-relative d-inline-block">
                             <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-primary text-white"
                                 style="width: 150px; height: 150px;">
-                                {% if face_encoding and face_encoding.image_path %}
-                                <img src="/uploads/{{ face_encoding.image_path }}" class="w-100 h-100"
-                                    style="object-fit: cover;" alt="Profile Picture">
-                                {% else %}
-                                <i class="fas fa-user fa-5x"></i>
-                                {% endif %}
+                                <img src="/profile/photo" class="w-100 h-100" style="object-fit: cover;"
+                                    alt="Profile Picture">
                             </div>
 
                             <button

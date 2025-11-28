@@ -4,34 +4,54 @@
 
 {% block content %}
 <style>
-/* Disable all transitions and animations to prevent shaking */
-* {
-    transition: none !important;
-    animation: none !important;
-}
+    /* Disable all transitions and animations to prevent shaking */
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
 
-/* Ensure table is stable */
-.table-responsive {
-    overflow-x: auto;
-}
+    /* Ensure table is stable */
+    .table-responsive {
+        overflow-x: auto;
+    }
 
-#studentsTable, #attendanceTable {
-    table-layout: fixed;
-}
+    #studentsTable,
+    #attendanceTable {
+        table-layout: fixed;
+    }
 
-#studentsTable th, #studentsTable td,
-#attendanceTable th, #attendanceTable td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    #studentsTable th,
+    #studentsTable td,
+    #attendanceTable th,
+    #attendanceTable td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Allow photo column to show fully */
+    #studentsTable th:first-child,
+    #studentsTable td:first-child {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        width: 80px;
+        /* Ensure width is enforced */
+    }
+
+    #studentsTable img {
+        position: relative;
+        z-index: 1;
+    }
 </style>
 <ul class="nav nav-tabs" id="studentTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view" type="button" role="tab">Student Management</button>
+        <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view"
+            type="button" role="tab">Student Management</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance-view" type="button" role="tab">Attendance Overview</button>
+        <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance-view"
+            type="button" role="tab">Attendance Overview</button>
     </li>
 </ul>
 <div class="tab-content mt-3" id="studentTabsContent">
@@ -47,20 +67,23 @@
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="searchInput" placeholder="Search students by name or email..." onkeyup="filterStudents()">
+                            <input type="text" class="form-control" id="searchInput"
+                                placeholder="Search students by name or email..." onkeyup="filterStudents()">
                         </div>
                         <div class="table-responsive">
                             <table class="table table-striped" id="studentsTable">
                                 <thead>
                                     <tr>
-                                        <th>Photo</th>
+                                        <th style="width: 80px;">Photo</th>
                                         <th>Full Name</th>
                                         <th>Email</th>
                                         <th>Gender</th>
                                         <th>Major</th>
                                         <th>Grade</th>
                                         <th>Birthday</th>
-                                        <th>Actions</th>
+                                        <th style="width: 60px;">Enroll</th>
+                                        <th style="width: 60px;">Edit</th>
+                                        <th style="width: 60px;">Delete</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentsTableBody">
@@ -112,7 +135,7 @@
                                     <div class="card bg-light">
                                         <div class="card-body text-center">
                                             <h4 id="lowAttendanceCount">-</h4>
-                                            <small>Low Attendance (<70%)</small>
+                                            <small>Low Attendance (<70%)< /small>
                                         </div>
                                     </div>
                                 </div>
@@ -149,7 +172,8 @@
                             <div id="attendanceAlerts" style="display: none;">
                                 <h6 class="mt-4">Attendance Alerts</h6>
                                 <div class="alert alert-warning">
-                                    <strong>Students with Low Attendance:</strong> The following students have attendance rates below 70%.
+                                    <strong>Students with Low Attendance:</strong> The following students have
+                                    attendance rates below 70%.
                                 </div>
                                 <div id="alertsList">
                                     <!-- Alerts will be loaded here -->
@@ -219,22 +243,23 @@
                                 <input type="text" class="form-control" id="studentMajor">
                             </div>
                         </div>
-                         <div class="col-md-6">
-                             <div class="mb-3">
-                                 <label for="studentDegreeLevel" class="form-label">Degree Level</label>
-                                 <select class="form-control" id="studentDegreeLevel">
-                                     <option value="">Select Degree Level</option>
-                                     <option value="Bachelor's">Bachelor's Degree</option>
-                                     <option value="Master's">Master's Degree</option>
-                                     <option value="PhD">PhD Degree</option>
-                                 </select>
-                             </div>
-                         </div>
-                     </div>
-                     <div class="mb-3">
-                         <label for="studentGrade" class="form-label">Grade (Start Year)</label>
-                         <input type="number" class="form-control" id="studentGrade" value="2025" min="2000" max="2030" required>
-                     </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="studentDegreeLevel" class="form-label">Degree Level</label>
+                                <select class="form-control" id="studentDegreeLevel">
+                                    <option value="">Select Degree Level</option>
+                                    <option value="Bachelor's">Bachelor's Degree</option>
+                                    <option value="Master's">Master's Degree</option>
+                                    <option value="PhD">PhD Degree</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentGrade" class="form-label">Grade (Start Year)</label>
+                        <input type="number" class="form-control" id="studentGrade" value="2025" min="2000" max="2030"
+                            required>
+                    </div>
                     <div class="mb-3">
                         <label for="studentPassword" class="form-label">Password</label>
                         <input type="password" class="form-control" id="studentPassword" required>
@@ -242,7 +267,8 @@
                     <div class="mb-3">
                         <label for="studentPhoto" class="form-label">Student Photo (Optional)</label>
                         <input type="file" class="form-control" id="studentPhoto" accept="image/*">
-                        <div class="form-text">Upload a clear photo of the student for attendance recognition. Supported formats: JPG, JPEG, PNG</div>
+                        <div class="form-text">Upload a clear photo of the student for attendance recognition. Supported
+                            formats: JPG, JPEG, PNG</div>
                     </div>
                 </form>
             </div>
@@ -304,32 +330,34 @@
                                 <input type="text" class="form-control" id="editStudentMajor">
                             </div>
                         </div>
-                         <div class="col-md-6">
-                             <div class="mb-3">
-                                 <label for="editStudentDegreeLevel" class="form-label">Degree Level</label>
-                                 <select class="form-control" id="editStudentDegreeLevel">
-                                     <option value="">Select Degree Level</option>
-                                     <option value="Bachelor's">Bachelor's Degree</option>
-                                     <option value="Master's">Master's Degree</option>
-                                     <option value="PhD">PhD Degree</option>
-                                 </select>
-                             </div>
-                         </div>
-                     </div>
-                      <div class="mb-3">
-                          <label for="editStudentGrade" class="form-label">Grade (Start Year)</label>
-                          <input type="number" class="form-control" id="editStudentGrade" min="2000" max="2030" required>
-                      </div>
-                     <div class="mb-3">
-                         <label for="editStudentPassword" class="form-label">New Password (leave empty to keep current)</label>
-                         <input type="password" class="form-control" id="editStudentPassword">
-                     </div>
-                     <div class="mb-3">
-                         <label for="editStudentPhoto" class="form-label">Update Student Photo (Optional)</label>
-                         <input type="file" class="form-control" id="editStudentPhoto" accept="image/*">
-                         <div class="form-text">Upload a new photo to replace the current one. Supported formats: JPG, JPEG, PNG</div>
-                     </div>
-                 </form>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editStudentDegreeLevel" class="form-label">Degree Level</label>
+                                <select class="form-control" id="editStudentDegreeLevel">
+                                    <option value="">Select Degree Level</option>
+                                    <option value="Bachelor's">Bachelor's Degree</option>
+                                    <option value="Master's">Master's Degree</option>
+                                    <option value="PhD">PhD Degree</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentGrade" class="form-label">Grade (Start Year)</label>
+                        <input type="number" class="form-control" id="editStudentGrade" min="2000" max="2030" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentPassword" class="form-label">New Password (leave empty to keep
+                            current)</label>
+                        <input type="password" class="form-control" id="editStudentPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentPhoto" class="form-label">Update Student Photo (Optional)</label>
+                        <input type="file" class="form-control" id="editStudentPhoto" accept="image/*">
+                        <div class="form-text">Upload a new photo to replace the current one. Supported formats: JPG,
+                            JPEG, PNG</div>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -338,49 +366,116 @@
         </div>
     </div>
 </div>
+</div>
+
+<!-- Video Enrollment Modal -->
+<div class="modal fade" id="videoEnrollmentModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-video"></i> Video Face Enrollment - <span id="enrollmentStudentName"></span>
+                </h5>
+                <button type="button" class="btn-close" onclick="closeEnrollmentModal()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Live Video Section -->
+                <div id="enrollmentControls">
+                    <div class="text-center mb-3">
+                        <video id="enrollmentVideo" autoplay playsinline
+                            style="width: 100%; max-width: 640px; border-radius: 10px; background: #000;"></video>
+                    </div>
+
+                    <!-- Instructions Display (shown during recording) -->
+                    <div id="enrollmentInstructions" class="mb-3"></div>
+
+                    <div class="text-center mb-3">
+                        <button class="btn btn-primary btn-lg" id="startRecordingBtn"
+                            onclick="startEnrollmentRecording()">
+                            <i class="fas fa-circle"></i> Start Recording
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Review Section -->
+                <div id="enrollmentReview" style="display: none;">
+                    <div class="text-center mb-3">
+                        <video id="reviewVideo" controls
+                            style="width: 100%; max-width: 640px; border-radius: 10px; background: #000;"></video>
+                    </div>
+                    <div class="text-center mb-3">
+                        <button class="btn btn-warning me-2" onclick="retakeEnrollmentVideo()">
+                            <i class="fas fa-redo"></i> Retake
+                        </button>
+                        <button class="btn btn-success" id="saveEnrollmentBtn" onclick="saveEnrollmentVideo()">
+                            <i class="fas fa-save"></i> Save & Train
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="text-center mt-3">
+                    <p id="enrollmentStatus" class="mb-2"></p>
+                </div>
+
+                <!-- Instructions Guide -->
+                <div class="alert alert-info mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Instructions:</h6>
+                    <ol class="mb-0">
+                        <li>Position yourself in front of the camera</li>
+                        <li>Click "Start Recording"</li>
+                        <li>Follow the on-screen instructions (10 seconds total)</li>
+                        <li>Review the video and retake if needed</li>
+                        <li>Click "Save & Train" to process the video</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-let students = [];
+    let students = [];
 
-// Load students on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadStudents();
-});
+    // Load students on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        loadStudents();
+    });
 
-async function loadStudents() {
-    try {
-        const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            students = data.users || [];
-            displayStudents();
-        } else if (response.status === 403) {
-            console.error('Access denied - redirecting to login');
-            window.location.href = '/login';
-        } else {
-            console.error('Failed to load students:', response.status, response.statusText);
+    async function loadStudents() {
+        try {
+            const response = await fetch('/api/admin/users?role=student', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                students = data.users || [];
+                displayStudents();
+            } else if (response.status === 403) {
+                console.error('Access denied - redirecting to login');
+                window.location.href = '/login';
+            } else {
+                console.error('Failed to load students:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Error loading students:', error);
+            // Don't retry automatically to prevent infinite loops
         }
-    } catch (error) {
-        console.error('Error loading students:', error);
-        // Don't retry automatically to prevent infinite loops
     }
-}
 
-function displayStudents(searchTerm = '') {
-    const tbody = document.getElementById('studentsTableBody');
-    tbody.innerHTML = '';
+    function displayStudents(searchTerm = '') {
+        const tbody = document.getElementById('studentsTableBody');
+        tbody.innerHTML = '';
 
-    const filteredStudents = students.filter(student =>
-        (student.full_name && student.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        const filteredStudents = students.filter(student =>
+            (student.full_name && student.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            student.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-    filteredStudents.forEach(student => {
-        const birthday = student.birthday ? new Date(student.birthday).toLocaleDateString() : 'N/A';
-        const row = document.createElement('tr');
-        row.innerHTML = `
+        filteredStudents.forEach(student => {
+            const birthday = student.birthday ? new Date(student.birthday).toLocaleDateString() : 'N/A';
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td class="text-center">
-                <img src="/api/admin/students/${student.id}/photo" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" alt="Photo" onerror="this.src='/static/images/default-avatar.svg'">
+                <img src="/api/admin/students/${student.id}/photo?t=${Date.now()}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" alt="Photo" onerror="this.src='/static/images/default-avatar.svg'">
             </td>
             <td>${student.full_name || 'N/A'}</td>
             <td>${student.email}</td>
@@ -388,260 +483,267 @@ function displayStudents(searchTerm = '') {
             <td>${student.major || 'N/A'}</td>
             <td>${student.grade || 'N/A'}</td>
             <td>${birthday}</td>
-            <td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-success" onclick="showVideoEnrollmentModal('${student.username}', '${student.full_name}')" title="Video Face Enrollment">
+                    <i class="fas fa-video"></i>
+                </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary" onclick="editStudent(${student.id})">
                     <i class="fas fa-edit"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${student.id})">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
-        tbody.appendChild(row);
-    });
-}
-
-function filterStudents() {
-    const searchTerm = document.getElementById('searchInput').value;
-    displayStudents(searchTerm);
-}
-
-function showCreateStudentModal() {
-    document.getElementById('createStudentForm').reset();
-    new bootstrap.Modal(document.getElementById('createStudentModal')).show();
-}
-
-async function createStudent() {
-    const photoFile = document.getElementById('studentPhoto').files[0];
-
-    // If there's a photo, use multipart/form-data
-    if (photoFile) {
-        const formData = new FormData();
-        formData.append('full_name', document.getElementById('studentFullName').value);
-        formData.append('email', document.getElementById('studentEmail').value);
-        formData.append('gender', document.getElementById('studentGender').value);
-        formData.append('birthday', document.getElementById('studentBirthday').value);
-        formData.append('major', document.getElementById('studentMajor').value);
-        formData.append('degree_level', document.getElementById('studentDegreeLevel').value);
-        formData.append('grade', document.getElementById('studentGrade').value);
-        formData.append('password', document.getElementById('studentPassword').value);
-        formData.append('role', 'student');
-        formData.append('face_image', photoFile);
-
-        try {
-            const response = await fetch('/api/admin/users', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
-                loadStudents();
-                alert('Student created successfully with photo!');
-            } else {
-                const error = await response.json();
-                alert('Error: ' + error.error);
-            }
-        } catch (error) {
-            console.error('Error creating student:', error);
-            alert('Error creating student');
-        }
-    } else {
-        // No photo, use JSON
-        const studentData = {
-            full_name: document.getElementById('studentFullName').value,
-            email: document.getElementById('studentEmail').value,
-            gender: document.getElementById('studentGender').value,
-            birthday: document.getElementById('studentBirthday').value,
-            major: document.getElementById('studentMajor').value,
-            degree_level: document.getElementById('studentDegreeLevel').value,
-            grade: document.getElementById('studentGrade').value,
-            password: document.getElementById('studentPassword').value,
-            role: 'student'
-        };
-
-        try {
-            const response = await fetch('/api/admin/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(studentData)
-            });
-
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
-                loadStudents();
-                alert('Student created successfully!');
-            } else {
-                const error = await response.json();
-                alert('Error: ' + error.error);
-            }
-        } catch (error) {
-            console.error('Error creating student:', error);
-            alert('Error creating student');
-        }
-    }
-}
-
-function editStudent(studentId) {
-    const student = students.find(s => s.id === studentId);
-    if (!student) return;
-
-    document.getElementById('editStudentId').value = student.id;
-    document.getElementById('editStudentFullName').value = student.full_name || '';
-    document.getElementById('editStudentEmail').value = student.email;
-    document.getElementById('editStudentGender').value = student.gender || '';
-    document.getElementById('editStudentBirthday').value = student.birthday ? student.birthday.split('T')[0] : '';
-    document.getElementById('editStudentMajor').value = student.major || '';
-    document.getElementById('editStudentDegreeLevel').value = student.degree_level || '';
-    document.getElementById('editStudentGrade').value = student.grade || '';
-    document.getElementById('editStudentPassword').value = '';
-
-    new bootstrap.Modal(document.getElementById('editStudentModal')).show();
-}
-
-async function updateStudent() {
-    const studentId = document.getElementById('editStudentId').value;
-    const photoFile = document.getElementById('editStudentPhoto').files[0];
-
-    // If there's a photo, use multipart/form-data
-    if (photoFile) {
-        const formData = new FormData();
-        formData.append('full_name', document.getElementById('editStudentFullName').value);
-        formData.append('email', document.getElementById('editStudentEmail').value);
-        formData.append('gender', document.getElementById('editStudentGender').value);
-        formData.append('birthday', document.getElementById('editStudentBirthday').value);
-        formData.append('major', document.getElementById('editStudentMajor').value);
-        formData.append('degree_level', document.getElementById('editStudentDegreeLevel').value);
-        formData.append('grade', document.getElementById('editStudentGrade').value);
-        formData.append('role', 'student');
-        formData.append('face_image', photoFile);
-
-        const password = document.getElementById('editStudentPassword').value;
-        if (password) {
-            formData.append('password', password);
-        }
-
-        try {
-            const response = await fetch(`/api/admin/users/${studentId}`, {
-                method: 'PUT',
-                credentials: 'include',
-                body: formData
-            });
-
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('editStudentModal')).hide();
-                loadStudents();
-                alert('Student updated successfully with new photo!');
-            } else {
-                const error = await response.json();
-                alert('Error: ' + error.error);
-            }
-        } catch (error) {
-            console.error('Error updating student:', error);
-            alert('Error updating student');
-        }
-    } else {
-        // No photo, use JSON
-        const studentData = {
-            full_name: document.getElementById('editStudentFullName').value,
-            email: document.getElementById('editStudentEmail').value,
-            gender: document.getElementById('editStudentGender').value,
-            birthday: document.getElementById('editStudentBirthday').value,
-            major: document.getElementById('editStudentMajor').value,
-            degree_level: document.getElementById('editStudentDegreeLevel').value,
-            grade: document.getElementById('editStudentGrade').value,
-            role: 'student'
-        };
-
-        const password = document.getElementById('editStudentPassword').value;
-        if (password) {
-            studentData.password = password;
-        }
-
-        try {
-            const response = await fetch(`/api/admin/users/${studentId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(studentData)
-            });
-
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('editStudentModal')).hide();
-                loadStudents();
-                alert('Student updated successfully!');
-            } else {
-                const error = await response.json();
-                alert('Error: ' + error.error);
-            }
-        } catch (error) {
-            console.error('Error updating student:', error);
-            alert('Error updating student');
-        }
-    }
-}
-
-async function deleteStudent(studentId) {
-    if (!confirm('Are you sure you want to delete this student?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${studentId}`, {
-            method: 'DELETE',
-            credentials: 'include'
+            tbody.appendChild(row);
         });
+    }
 
-        if (response.ok) {
-            loadStudents();
-            alert('Student deleted successfully!');
+    function filterStudents() {
+        const searchTerm = document.getElementById('searchInput').value;
+        displayStudents(searchTerm);
+    }
+
+    function showCreateStudentModal() {
+        document.getElementById('createStudentForm').reset();
+        new bootstrap.Modal(document.getElementById('createStudentModal')).show();
+    }
+
+    async function createStudent() {
+        const photoFile = document.getElementById('studentPhoto').files[0];
+
+        // If there's a photo, use multipart/form-data
+        if (photoFile) {
+            const formData = new FormData();
+            formData.append('full_name', document.getElementById('studentFullName').value);
+            formData.append('email', document.getElementById('studentEmail').value);
+            formData.append('gender', document.getElementById('studentGender').value);
+            formData.append('birthday', document.getElementById('studentBirthday').value);
+            formData.append('major', document.getElementById('studentMajor').value);
+            formData.append('degree_level', document.getElementById('studentDegreeLevel').value);
+            formData.append('grade', document.getElementById('studentGrade').value);
+            formData.append('password', document.getElementById('studentPassword').value);
+            formData.append('role', 'student');
+            formData.append('face_image', photoFile);
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
+                    loadStudents();
+                    alert('Student created successfully with photo!');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error creating student:', error);
+                alert('Error creating student');
+            }
         } else {
+            // No photo, use JSON
+            const studentData = {
+                full_name: document.getElementById('studentFullName').value,
+                email: document.getElementById('studentEmail').value,
+                gender: document.getElementById('studentGender').value,
+                birthday: document.getElementById('studentBirthday').value,
+                major: document.getElementById('studentMajor').value,
+                degree_level: document.getElementById('studentDegreeLevel').value,
+                grade: document.getElementById('studentGrade').value,
+                password: document.getElementById('studentPassword').value,
+                role: 'student'
+            };
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(studentData)
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
+                    loadStudents();
+                    alert('Student created successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error creating student:', error);
+                alert('Error creating student');
+            }
+        }
+    }
+
+    function editStudent(studentId) {
+        const student = students.find(s => s.id === studentId);
+        if (!student) return;
+
+        document.getElementById('editStudentId').value = student.id;
+        document.getElementById('editStudentFullName').value = student.full_name || '';
+        document.getElementById('editStudentEmail').value = student.email;
+        document.getElementById('editStudentGender').value = student.gender || '';
+        document.getElementById('editStudentBirthday').value = student.birthday ? student.birthday.split('T')[0] : '';
+        document.getElementById('editStudentMajor').value = student.major || '';
+        document.getElementById('editStudentDegreeLevel').value = student.degree_level || '';
+        document.getElementById('editStudentGrade').value = student.grade || '';
+        document.getElementById('editStudentPassword').value = '';
+
+        new bootstrap.Modal(document.getElementById('editStudentModal')).show();
+    }
+
+    async function updateStudent() {
+        const studentId = document.getElementById('editStudentId').value;
+        const photoFile = document.getElementById('editStudentPhoto').files[0];
+
+        // If there's a photo, use multipart/form-data
+        if (photoFile) {
+            const formData = new FormData();
+            formData.append('full_name', document.getElementById('editStudentFullName').value);
+            formData.append('email', document.getElementById('editStudentEmail').value);
+            formData.append('gender', document.getElementById('editStudentGender').value);
+            formData.append('birthday', document.getElementById('editStudentBirthday').value);
+            formData.append('major', document.getElementById('editStudentMajor').value);
+            formData.append('degree_level', document.getElementById('editStudentDegreeLevel').value);
+            formData.append('grade', document.getElementById('editStudentGrade').value);
+            formData.append('role', 'student');
+            formData.append('face_image', photoFile);
+
+            const password = document.getElementById('editStudentPassword').value;
+            if (password) {
+                formData.append('password', password);
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${studentId}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editStudentModal')).hide();
+                    loadStudents();
+                    alert('Student updated successfully with new photo!');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error updating student:', error);
+                alert('Error updating student');
+            }
+        } else {
+            // No photo, use JSON
+            const studentData = {
+                full_name: document.getElementById('editStudentFullName').value,
+                email: document.getElementById('editStudentEmail').value,
+                gender: document.getElementById('editStudentGender').value,
+                birthday: document.getElementById('editStudentBirthday').value,
+                major: document.getElementById('editStudentMajor').value,
+                degree_level: document.getElementById('editStudentDegreeLevel').value,
+                grade: document.getElementById('editStudentGrade').value,
+                role: 'student'
+            };
+
+            const password = document.getElementById('editStudentPassword').value;
+            if (password) {
+                studentData.password = password;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${studentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(studentData)
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editStudentModal')).hide();
+                    loadStudents();
+                    alert('Student updated successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error updating student:', error);
+                alert('Error updating student');
+            }
+        }
+    }
+
+    async function deleteStudent(studentId) {
+        if (!confirm('Are you sure you want to delete this student?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/users/${studentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                loadStudents();
+                alert('Student deleted successfully!');
+            } else {
+                alert('Error deleting student');
+            }
+        } catch (error) {
+            console.error('Error deleting student:', error);
             alert('Error deleting student');
         }
-    } catch (error) {
-        console.error('Error deleting student:', error);
-        alert('Error deleting student');
     }
-}
 
-async function analyzeAttendance() {
-    document.getElementById('attendanceLoading').style.display = 'block';
-    document.getElementById('attendanceAnalysis').style.display = 'none';
+    async function analyzeAttendance() {
+        document.getElementById('attendanceLoading').style.display = 'block';
+        document.getElementById('attendanceAnalysis').style.display = 'none';
 
-    try {
-        const response = await fetch('/api/admin/attendance/analysis', { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            displayAttendanceAnalysis(data);
-        } else {
+        try {
+            const response = await fetch('/api/admin/attendance/analysis', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                displayAttendanceAnalysis(data);
+            } else {
+                alert('Error analyzing attendance');
+            }
+        } catch (error) {
+            console.error('Error analyzing attendance:', error);
             alert('Error analyzing attendance');
         }
-    } catch (error) {
-        console.error('Error analyzing attendance:', error);
-        alert('Error analyzing attendance');
+
+        document.getElementById('attendanceLoading').style.display = 'none';
     }
 
-    document.getElementById('attendanceLoading').style.display = 'none';
-}
+    function displayAttendanceAnalysis(data) {
+        // Update summary cards
+        document.getElementById('totalStudents').textContent = data.total_students;
+        document.getElementById('avgAttendance').textContent = data.avg_attendance + '%';
+        document.getElementById('lowAttendanceCount').textContent = data.low_attendance_count;
+        document.getElementById('totalSessions').textContent = data.total_sessions;
 
-function displayAttendanceAnalysis(data) {
-    // Update summary cards
-    document.getElementById('totalStudents').textContent = data.total_students;
-    document.getElementById('avgAttendance').textContent = data.avg_attendance + '%';
-    document.getElementById('lowAttendanceCount').textContent = data.low_attendance_count;
-    document.getElementById('totalSessions').textContent = data.total_sessions;
+        // Display attendance table
+        const tbody = document.getElementById('attendanceTableBody');
+        tbody.innerHTML = '';
 
-    // Display attendance table
-    const tbody = document.getElementById('attendanceTableBody');
-    tbody.innerHTML = '';
+        data.student_details.forEach(student => {
+            const statusBadge = student.attendance_rate < 70 ?
+                '<span class="badge bg-danger">Low Attendance</span>' :
+                '<span class="badge bg-success">Good Attendance</span>';
 
-    data.student_details.forEach(student => {
-        const statusBadge = student.attendance_rate < 70 ?
-            '<span class="badge bg-danger">Low Attendance</span>' :
-            '<span class="badge bg-success">Good Attendance</span>';
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td>${student.name}</td>
             <td>${student.total_sessions}</td>
             <td>${student.present_count}</td>
@@ -650,56 +752,246 @@ function displayAttendanceAnalysis(data) {
             <td>${student.attendance_rate}%</td>
             <td>${statusBadge}</td>
         `;
-        tbody.appendChild(row);
-    });
+            tbody.appendChild(row);
+        });
 
-    // Display alerts for low attendance
-    const alertsDiv = document.getElementById('alertsList');
-    alertsDiv.innerHTML = '';
+        // Display alerts for low attendance
+        const alertsDiv = document.getElementById('alertsList');
+        alertsDiv.innerHTML = '';
 
-    if (data.low_attendance_students.length > 0) {
-        data.low_attendance_students.forEach(student => {
-            const alertCard = document.createElement('div');
-            alertCard.className = 'alert alert-warning mb-2';
-            alertCard.innerHTML = `
+        if (data.low_attendance_students.length > 0) {
+            data.low_attendance_students.forEach(student => {
+                const alertCard = document.createElement('div');
+                alertCard.className = 'alert alert-warning mb-2';
+                alertCard.innerHTML = `
                 <strong>${student.name}</strong> has ${student.attendance_rate}% attendance rate.
                 <button class="btn btn-sm btn-outline-primary ms-2" onclick="viewStudentDetails(${student.id})">
                     View Details
                 </button>
             `;
-            alertsDiv.appendChild(alertCard);
-        });
-        document.getElementById('attendanceAlerts').style.display = 'block';
+                alertsDiv.appendChild(alertCard);
+            });
+            document.getElementById('attendanceAlerts').style.display = 'block';
+        }
+
+        document.getElementById('attendanceAnalysis').style.display = 'block';
     }
 
-    document.getElementById('attendanceAnalysis').style.display = 'block';
-}
-
-async function exportAttendance() {
-    try {
-        const response = await fetch('/api/admin/attendance/export', { credentials: 'include' });
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'attendance_report.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } else {
+    async function exportAttendance() {
+        try {
+            const response = await fetch('/api/admin/attendance/export', { credentials: 'include' });
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'attendance_report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Error exporting attendance report');
+            }
+        } catch (error) {
+            console.error('Error exporting attendance:', error);
             alert('Error exporting attendance report');
         }
-    } catch (error) {
-        console.error('Error exporting attendance:', error);
-        alert('Error exporting attendance report');
     }
-}
 
-function viewStudentDetails(studentId) {
-    // This could open a detailed view modal for the student
-    alert('Student details view - to be implemented');
-}
+    // Video Enrollment Variables
+    let videoStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let currentEnrollmentStudent = null;
+    let currentInstruction = 0;
+    let recordedVideoBlob = null;
+
+    const enrollmentInstructions = [
+        { text: "👁️ LOOK AT CAMERA", duration: 2000 },
+        { text: "👆 LOOK UP", duration: 2000 },
+        { text: "👇 LOOK DOWN", duration: 2000 },
+        { text: "👈 LOOK LEFT", duration: 2000 },
+        { text: "👉 LOOK RIGHT", duration: 2000 }
+    ];
+
+    async function showVideoEnrollmentModal(studentId, studentName) {
+        currentEnrollmentStudent = { id: studentId, name: studentName };
+        document.getElementById('enrollmentStudentName').textContent = studentName;
+
+        // Reset state
+        recordedVideoBlob = null;
+        currentInstruction = 0;
+        document.getElementById('enrollmentControls').style.display = 'block';
+        document.getElementById('enrollmentReview').style.display = 'none';
+        document.getElementById('enrollmentInstructions').innerHTML = '';
+        document.getElementById('enrollmentStatus').textContent = 'Ready to start';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('videoEnrollmentModal'));
+        modal.show();
+
+        // Initialize camera
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+            document.getElementById('enrollmentVideo').srcObject = videoStream;
+            document.getElementById('enrollmentStatus').textContent = 'Camera ready - Press Start Recording';
+        } catch (error) {
+            document.getElementById('enrollmentStatus').textContent = 'Failed to access camera: ' + error.message;
+            document.getElementById('enrollmentStatus').className = 'text-danger';
+        }
+    }
+
+    async function startEnrollmentRecording() {
+        document.getElementById('startRecordingBtn').disabled = true;
+        document.getElementById('enrollmentStatus').textContent = 'Recording...';
+        document.getElementById('enrollmentStatus').className = 'text-success';
+
+        // Start recording
+        recordedChunks = [];
+
+        // Try different codecs for browser compatibility
+        let mimeType = 'video/webm';
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+            mimeType = 'video/webm;codecs=vp8';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+            mimeType = 'video/webm';
+        }
+
+        mediaRecorder = new MediaRecorder(videoStream, { mimeType });
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            recordedVideoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            showEnrollmentReview();
+        };
+
+        mediaRecorder.start();
+
+        // Run through instructions
+        await runEnrollmentInstructions();
+    }
+
+    async function runEnrollmentInstructions() {
+        const instructionsDiv = document.getElementById('enrollmentInstructions');
+        console.log('Starting instruction sequence...');
+
+        for (let i = 0; i < enrollmentInstructions.length; i++) {
+            currentInstruction = i;
+            const instruction = enrollmentInstructions[i];
+
+            console.log(`Showing instruction ${i + 1}: ${instruction.text}`);
+
+            instructionsDiv.innerHTML = `
+                <div class="alert alert-info text-center" style="font-size: 1.5rem; font-weight: bold;">
+                    ${instruction.text}
+                    <div class="mt-2" style="font-size: 1rem;">Step ${i + 1} / ${enrollmentInstructions.length}</div>
+                </div>
+            `;
+
+            await sleep(instruction.duration);
+        }
+
+        // Stop recording
+        console.log('Stopping recording...');
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        instructionsDiv.innerHTML = '';
+        document.getElementById('enrollmentStatus').textContent = 'Recording complete - Review your video';
+        document.getElementById('enrollmentStatus').className = 'text-primary';
+    }
+
+    function showEnrollmentReview() {
+        // Hide live video, show recorded video
+        document.getElementById('enrollmentControls').style.display = 'none';
+        document.getElementById('enrollmentReview').style.display = 'block';
+
+        // Set recorded video source
+        const reviewVideo = document.getElementById('reviewVideo');
+        reviewVideo.src = URL.createObjectURL(recordedVideoBlob);
+        reviewVideo.load();
+    }
+
+    function retakeEnrollmentVideo() {
+        // Reset to recording mode
+        document.getElementById('enrollmentControls').style.display = 'block';
+        document.getElementById('enrollmentReview').style.display = 'none';
+        document.getElementById('startRecordingBtn').disabled = false;
+        document.getElementById('enrollmentStatus').textContent = 'Ready to start';
+        document.getElementById('enrollmentStatus').className = '';
+        recordedVideoBlob = null;
+    }
+
+    async function saveEnrollmentVideo() {
+        if (!recordedVideoBlob) {
+            alert('No video recorded');
+            return;
+        }
+
+        document.getElementById('saveEnrollmentBtn').disabled = true;
+        document.getElementById('enrollmentStatus').textContent = 'Processing video...';
+        document.getElementById('enrollmentStatus').className = 'text-info';
+
+        const formData = new FormData();
+        formData.append('video', recordedVideoBlob, 'enrollment.webm');
+        formData.append('student_id', currentEnrollmentStudent.id);
+
+        try {
+            const response = await fetch('/api/admin/enroll-video', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                document.getElementById('enrollmentStatus').textContent = `✅ Success! Processed ${result.frames_extracted} frames`;
+                document.getElementById('enrollmentStatus').className = 'text-success';
+
+                // Close modal after 2 seconds
+                setTimeout(() => {
+                    closeEnrollmentModal();
+                    loadStudents(); // Refresh student list
+                }, 2000);
+            } else {
+                document.getElementById('enrollmentStatus').textContent = '❌ Error: ' + result.error;
+                document.getElementById('enrollmentStatus').className = 'text-danger';
+                document.getElementById('saveEnrollmentBtn').disabled = false;
+            }
+        } catch (error) {
+            document.getElementById('enrollmentStatus').textContent = '❌ Upload failed: ' + error.message;
+            document.getElementById('enrollmentStatus').className = 'text-danger';
+            document.getElementById('saveEnrollmentBtn').disabled = false;
+        }
+    }
+
+    function closeEnrollmentModal() {
+        // Stop camera
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('videoEnrollmentModal')).hide();
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function viewStudentDetails(studentId) {
+        // This could open a detailed view modal for the student
+        alert('Student details view - to be implemented');
+    }
 </script>
 {% endblock %}

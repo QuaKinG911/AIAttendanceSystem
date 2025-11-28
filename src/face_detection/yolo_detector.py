@@ -14,27 +14,30 @@ class YOLOFaceDetector:
         # Try to initialize YOLO model
         if model_path:
             self._init_yolo_model(model_path)
+        else:
+            # Use default YOLOv8n model
+            self._init_yolo_model(None)
 
         # If YOLO fails, initialize fallback detector
         if not self.model_available:
             self._init_fallback_detector()
 
-    def _init_yolo_model(self, model_path: str):
+    def _init_yolo_model(self, model_path: Optional[str] = None):
         """Initialize YOLO model for face detection"""
         try:
             from ultralytics import YOLO  # type: ignore
             import torch  # type: ignore
+
+            if model_path is None:
+                # Use YOLOv8x face detection model
+                model_path = 'models/yolov8x-face-lindevs.pt' 
+                logging.info("No model path provided, using YOLOv8x face model")
 
             # Convert to absolute path if relative
             if not os.path.isabs(model_path):
                 # Get the directory of this file and go up to project root
                 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 model_path = os.path.join(project_root, model_path)
-
-            # Check if model file exists
-            if not os.path.exists(model_path):
-                logging.warning(f"YOLO model not found: {model_path}. Using fallback detector.")
-                return
 
             logging.info(f"Loading YOLO model from: {model_path}")
             self.model = YOLO(model_path)

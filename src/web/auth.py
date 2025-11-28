@@ -56,6 +56,8 @@ def logout():
     flash('You have been logged out successfully', 'success')
     return redirect(url_for('web_auth.login'))
 
+from src.utils.dataset_manager import save_student_photo, get_student_dir, add_student, rename_student_directory
+
 @web_auth_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session:
@@ -67,22 +69,72 @@ def profile():
         return redirect(url_for('web_auth.login'))
 
     if request.method == 'POST':
-        # Update profile
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+        action = request.form.get('action')
 
-        if current_password and new_password:
-            if not user.check_password(current_password):
-                flash('Current password is incorrect', 'error')
-            elif new_password != confirm_password:
-                flash('New passwords do not match', 'error')
+        if action == 'update_profile':
+            new_username = request.form.get('username')
+            new_email = request.form.get('email')
+
+            if new_username and new_email:
+                # Check if username or email is already taken by another user
+                existing_user = User.query.filter(
+                    (User.username == new_username) | (User.email == new_email)
+                ).filter(User.id != user.id).first()
+
+                if existing_user:
+                    if existing_user.username == new_username:
+                        flash('Username already taken', 'error')
+                    else:
+                        flash('Email already taken', 'error')
+                else:
+                    # Rename directory if username changed
+                    if user.username != new_username:
+                        rename_student_directory(user.username, new_username)
+                    
+                    user.username = new_username
+                    user.email = new_email
+                    db.session.commit()
+                    session['username'] = new_username  # Update session
+                    flash('Profile updated successfully', 'success')
             else:
-                user.set_password(new_password)
-                db.session.commit()
-                flash('Password updated successfully', 'success')
+                flash('Username and Email are required', 'error')
+
+        elif action == 'update_password':
+            # Update password
+            current_password = request.form.get('current_password')
+            new_password = request.form.get('new_password')
+            confirm_password = request.form.get('confirm_password')
+
+            if current_password and new_password:
+                if not user.check_password(current_password):
+                    flash('Current password is incorrect', 'error')
+                elif new_password != confirm_password:
+                    flash('New passwords do not match', 'error')
+                else:
+                    user.set_password(new_password)
+                    db.session.commit()
+                    flash('Password updated successfully', 'success')
+            else:
+                flash('Please fill in all password fields', 'error')
+        
         else:
-            flash('Please fill in all password fields', 'error')
+             # Fallback for legacy or unspecified action (assume password update if password fields present)
+            if request.form.get('current_password'):
+                 current_password = request.form.get('current_password')
+                 new_password = request.form.get('new_password')
+                 confirm_password = request.form.get('confirm_password')
+
+                 if current_password and new_password:
+                    if not user.check_password(current_password):
+                        flash('Current password is incorrect', 'error')
+                    elif new_password != confirm_password:
+                        flash('New passwords do not match', 'error')
+                    else:
+                        user.set_password(new_password)
+                        db.session.commit()
+                        flash('Password updated successfully', 'success')
+            else:
+                flash('Invalid action', 'error')
 
     # Get face encoding
     face_encoding = FaceEncoding.query.filter_by(student_id=user.id).first()
@@ -95,7 +147,7 @@ def profile():
 
 import os
 from werkzeug.utils import secure_filename
-from src.utils.dataset_manager import save_student_photo, get_student_dir
+
 from flask import send_file
 
 @web_auth_bp.route('/profile/upload-photo', methods=['POST'])
@@ -121,8 +173,8 @@ def upload_photo():
             image_bytes = file.read()
             
             # Save using dataset manager (saves to data/faces/{username}/{username}.jpg)
-            # We use username as the ID for file storage to match admin behavior
-            success, result = save_student_photo(user.username, image_bytes)
+            # We use add_student to ensure it overwrites the primary image
+            success, result = add_student(user.username, user.full_name or user.username, image_bytes)
             
             if not success:
                 return jsonify({'error': result}), 500

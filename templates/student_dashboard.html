@@ -16,12 +16,30 @@
                     </div>
                     <div class="col-md-4 text-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
-                                <i class="fas fa-calendar-check fa-2x"></i>
+                            <div class="me-4 position-relative d-inline-block">
+                                <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-primary text-white border border-2 border-white shadow-sm"
+                                    style="width: 80px; height: 80px;">
+                                    <img src="/profile/photo" class="w-100 h-100" style="object-fit: cover;"
+                                        alt="Profile Picture">
+                                </div>
+
+                                <button
+                                    class="btn position-absolute bottom-0 end-0 rounded-circle shadow-sm d-flex align-items-center justify-content-center p-0"
+                                    style="width: 28px; height: 28px; background-color: white !important; border: 1px solid #dee2e6; transform: translate(-5%, -5%);"
+                                    onclick="document.getElementById('dashboardProfilePhotoInput').click()"
+                                    title="Upload Photo">
+                                    <i class="fas fa-camera text-dark" style="font-size: 0.8rem;"></i>
+                                </button>
+
+                                <form id="dashboardPhotoUploadForm" enctype="multipart/form-data"
+                                    style="display: none;">
+                                    <input type="file" id="dashboardProfilePhotoInput" name="photo" accept="image/*"
+                                        onchange="uploadDashboardProfilePhoto()">
+                                </form>
                             </div>
                             <div>
                                 <h5 class="mb-0">Student Portal</h5>
-                                <small class="opacity-75">Academic Year 2024</small>
+                                <small class="opacity-75">Academic Year {{ user.start_year }}</small>
                             </div>
                         </div>
                     </div>
@@ -63,8 +81,10 @@
                     <small class="text-muted">Your attendance statistics</small>
                 </div>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
-                <canvas id="attendanceChart" width="200" height="200"></canvas>
+            <div class="card-body">
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -135,6 +155,36 @@
 
 {% block extra_scripts %}
 <script>
+    function uploadDashboardProfilePhoto() {
+        const input = document.getElementById('dashboardProfilePhotoInput');
+        if (!input.files || !input.files[0]) return;
+
+        const formData = new FormData();
+        formData.append('photo', input.files[0]);
+
+        // Show loading state
+        showToast('Uploading photo...', 'info');
+
+        fetch('/profile/upload-photo', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Profile photo updated successfully', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.error || 'Failed to upload photo', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred during upload', 'error');
+            });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Load classes and attendance data
         loadDashboardData();

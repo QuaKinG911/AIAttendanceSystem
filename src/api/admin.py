@@ -3,12 +3,13 @@
 from flask import Blueprint, request, jsonify, send_file, session, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
-from src.models import User, UserRole, Class, Course, Enrollment, AttendanceSession, AttendanceRecord, db
+from src.models import User, UserRole, Class, Course, Enrollment, AttendanceSession, AttendanceRecord, FaceEncoding, db, SessionStatus, AttendanceStatus
 import os
 from datetime import datetime, timedelta, date
 import pandas as pd
 from io import BytesIO
 from functools import wraps
+from src.utils.dataset_manager import add_student, remove_student
 
 import logging
 
@@ -63,16 +64,33 @@ def get_stats():
 
         # Average attendance rate (last 30 days)
         thirty_days_ago = datetime.now() - timedelta(days=30)
-        recent_records = AttendanceRecord.query.filter(
-            AttendanceRecord.detected_at >= thirty_days_ago
+        
+        # Get all completed sessions in the last 30 days
+        recent_sessions = AttendanceSession.query.filter(
+            AttendanceSession.start_time >= thirty_days_ago,
+            AttendanceSession.status == SessionStatus.COMPLETED
         ).all()
-
-        if recent_records:
-            total_records = len(recent_records)
-            present_count = sum(1 for r in recent_records if r.status == 'present')
-            avg_attendance_rate = round((present_count / total_records) * 100, 1) if total_records > 0 else 0
-        else:
-            avg_attendance_rate = 0
+        
+        total_attendance_rate = 0
+        sessions_count = 0
+        
+        for session in recent_sessions:
+            # Get total enrolled students for this class
+            enrolled_count = Enrollment.query.filter_by(class_id=session.class_id).count()
+            
+            if enrolled_count > 0:
+                # Get present students for this session
+                present_count = AttendanceRecord.query.filter_by(
+                    session_id=session.id,
+                    status=AttendanceStatus.PRESENT
+                ).count()
+                
+                # Calculate rate for this session
+                session_rate = (present_count / enrolled_count) * 100
+                total_attendance_rate += session_rate
+                sessions_count += 1
+        
+        avg_attendance_rate = round(total_attendance_rate / sessions_count, 1) if sessions_count > 0 else 0
 
         return jsonify({
             'total_users': total_users,
@@ -170,9 +188,8 @@ def create_user():
         if 'face_image' in request.files:
             file = request.files['face_image']
             if file and file.filename:
-                from src.utils.dataset_manager import save_student_photo
                 # Save using username as ID
-                success, result = save_student_photo(user.username, file.read(), '.' + file.filename.split('.')[-1])
+                success, result = add_student(user.username, user.full_name or user.username, file.read(), '.' + file.filename.split('.')[-1])
                 if not success:
                     logger.warning(f"Failed to save photo for {user.username}: {result}")
 
@@ -202,9 +219,8 @@ def update_user(user_id):
                 file = request.files['face_image']
                 if file and file.filename:
                     # Save the image
-                    from src.utils.dataset_manager import save_student_photo
                     # Save using username as ID
-                    success, result = save_student_photo(user.username, file.read(), '.' + file.filename.split('.')[-1])
+                    success, result = add_student(user.username, user.full_name or user.username, file.read(), '.' + file.filename.split('.')[-1])
                     if not success:
                         return jsonify({'error': result}), 500
         else:
@@ -277,6 +293,9 @@ def delete_user(user_id):
             Course.query.filter_by(teacher_id=user_id).delete()
         # Delete face encodings
         FaceEncoding.query.filter_by(student_id=user_id).delete()
+        
+        # Remove photos
+        remove_student(user.username)
 
         db.session.delete(user)
         db.session.commit()
@@ -317,6 +336,46 @@ def get_teachers():
             })
 
         return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/teachers/<int:teacher_id>/classes', methods=['GET'])
+@admin_or_session_required
+def get_teacher_classes(teacher_id):
+    """Get classes for a specific teacher"""
+    try:
+        # Verify teacher exists
+        teacher = User.query.get(teacher_id)
+        if not teacher or teacher.role != UserRole.TEACHER:
+            return jsonify({'error': 'Teacher not found'}), 404
+
+        # Get courses taught by this teacher
+        courses = Course.query.filter_by(teacher_id=teacher_id).all()
+        
+        # Group by class
+        classes_data = {}
+        for course in courses:
+            if course.class_id not in classes_data:
+                class_obj = Class.query.get(course.class_id)
+                if class_obj:
+                    classes_data[course.class_id] = {
+                        'id': class_obj.id,
+                        'name': class_obj.name,
+                        'courses': []
+                    }
+            
+            if course.class_id in classes_data:
+                classes_data[course.class_id]['courses'].append({
+                    'id': course.id,
+                    'name': course.name,
+                    'day_of_week': course.day_of_week,
+                    'start_time': course.start_time.strftime('%H:%M'),
+                    'end_time': course.end_time.strftime('%H:%M'),
+                    'room': course.room
+                })
+
+        return jsonify(list(classes_data.values()))
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -741,50 +800,45 @@ def add_class_session(class_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-from src.models import FaceEncoding
 
 @admin_bp.route('/students/<int:student_id>/photo', methods=['GET'])
 @admin_or_session_required
 def get_student_photo(student_id):
-    """Get student photo"""
-    try:
-        logger.debug(f"Getting photo for student {student_id}")
-        student = User.query.filter_by(id=student_id, role=UserRole.STUDENT).first()
-        if not student:
-            logger.debug(f"Student {student_id} not found, returning default")
-            # Return default avatar
-            default_path = os.path.join(os.getcwd(), 'static', 'images', 'default-avatar.svg')
-            if os.path.exists(default_path):
-                return send_file(default_path, mimetype='image/svg+xml')
-            else:
-                return jsonify({'error': 'Default avatar not found'}), 404
+    """Get student photo (legacy endpoint)"""
+    return get_user_photo(student_id)
 
-        logger.debug(f"Found student: {student.username}, id: {student.id}")
+@admin_bp.route('/users/<int:user_id>/photo', methods=['GET'])
+@admin_or_session_required
+def get_user_photo(user_id):
+    """Get user photo"""
+    try:
+        logger.debug(f"Getting photo for user {user_id}")
+        user = User.query.get(user_id)
+        if not user:
+            # Return default avatar
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            default_path = os.path.join(project_root, 'static', 'images', 'default-avatar.svg')
+            if os.path.exists(default_path):
+                 return send_file(default_path, mimetype='image/svg+xml')
+            else:
+                return jsonify({'error': 'User not found'}), 404
 
         # Check FaceEncoding for image path
-        encoding = FaceEncoding.query.filter_by(student_id=student.id).first()
-        logger.debug(f"Encoding: {encoding}")
-
+        encoding = FaceEncoding.query.filter_by(student_id=user.id).first()
+        
         if encoding and encoding.image_path:
-            # Check if file exists in uploads
             upload_path = os.path.join(os.getcwd(), 'uploads', encoding.image_path)
-            logger.debug(f"Upload path: {upload_path}, exists: {os.path.exists(upload_path)}")
             if os.path.exists(upload_path):
                 return send_file(upload_path, mimetype='image/jpeg')
 
-        # Fallback to old path or default
-        if student.username:
-            old_path = f"data/faces/{student.username}/{student.username}.jpg"
-            logger.debug(f"Old path: {old_path}, exists: {os.path.exists(old_path)}")
-            # Construct absolute path to be safe
+        # Fallback to dataset path
+        if user.username:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            base_path = os.path.join(project_root, 'data', 'faces', student.username)
-            
-            logger.debug(f"Searching for photo in: {base_path}")
+            base_path = os.path.join(project_root, 'data', 'faces', user.username)
             
             # Check extensions
             for ext in ['.jpg', '.jpeg', '.png', '.JPG', '.PNG']:
-                file_path = os.path.join(base_path, f"{student.username}{ext}")
+                file_path = os.path.join(base_path, f"{user.username}{ext}")
                 if os.path.exists(file_path):
                     logger.debug(f"Sending photo from {file_path}")
                     return send_file(file_path, mimetype='image/jpeg')
@@ -824,13 +878,41 @@ def get_attendance_analysis():
         total_present_overall = 0
 
         for student in students:
-            # Get attendance records for this student
-            records = AttendanceRecord.query.filter_by(student_id=student.id).all()
-
-            total_sessions = len(records)
-            present_count = sum(1 for r in records if r.status == 'present')
-            absent_count = sum(1 for r in records if r.status == 'absent')
-            late_count = sum(1 for r in records if r.status == 'late')
+            # Get all classes student is enrolled in
+            enrollments = Enrollment.query.filter_by(student_id=student.id).all()
+            class_ids = [e.class_id for e in enrollments]
+            
+            # Get all completed sessions for these classes
+            if class_ids:
+                total_sessions_query = AttendanceSession.query.filter(
+                    AttendanceSession.class_id.in_(class_ids),
+                    AttendanceSession.status == SessionStatus.COMPLETED
+                )
+                total_sessions = total_sessions_query.count()
+                
+                # Get attendance records for these sessions
+                present_count = AttendanceRecord.query.join(AttendanceSession).filter(
+                    AttendanceRecord.student_id == student.id,
+                    AttendanceRecord.status == AttendanceStatus.PRESENT,
+                    AttendanceSession.status == SessionStatus.COMPLETED
+                ).count()
+                
+                late_count = AttendanceRecord.query.join(AttendanceSession).filter(
+                    AttendanceRecord.student_id == student.id,
+                    AttendanceRecord.status == AttendanceStatus.LATE,
+                    AttendanceSession.status == SessionStatus.COMPLETED
+                ).count()
+                
+                # Absent is total sessions minus (present + late)
+                # Note: This assumes if no record exists, they were absent
+                absent_count = total_sessions - (present_count + late_count)
+                if absent_count < 0: absent_count = 0 # Safety check
+                
+            else:
+                total_sessions = 0
+                present_count = 0
+                late_count = 0
+                absent_count = 0
 
             attendance_rate = round((present_count / total_sessions) * 100, 1) if total_sessions > 0 else 0
 
@@ -844,7 +926,7 @@ def get_attendance_analysis():
                 'attendance_rate': attendance_rate
             })
 
-            if attendance_rate < 70:
+            if attendance_rate < 70 and total_sessions > 0:
                 low_attendance_students.append({
                     'id': student.id,
                     'name': student.full_name or student.username,
@@ -863,35 +945,6 @@ def get_attendance_analysis():
             'total_sessions': total_sessions_overall,
             'student_details': student_details,
             'low_attendance_students': low_attendance_students
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@admin_bp.route('/attendance/export', methods=['GET'])
-@admin_or_session_required
-def export_attendance():
-    """Export attendance data as JSON"""
-    try:
-        # Get attendance data
-        records = AttendanceRecord.query.join(User).add_columns(
-            User.username, User.full_name, User.email,
-            AttendanceRecord.detected_at, AttendanceRecord.status, AttendanceRecord.confidence_score
-        ).all()
-
-        # Create data
-        data = [{
-            'student_username': record.username,
-            'student_name': record.full_name or record.username,
-            'email': record.email,
-            'timestamp': record.detected_at.isoformat() if record.detected_at else None,
-            'status': record.status.value if record.status else None,
-            'confidence': float(record.confidence_score) if record.confidence_score else None
-        } for record in records]
-
-        return jsonify({
-            'attendance_records': data,
-            'total_records': len(data)
         })
 
     except Exception as e:

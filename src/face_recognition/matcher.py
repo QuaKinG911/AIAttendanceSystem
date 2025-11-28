@@ -160,6 +160,7 @@ class FaceMatcher:
                     self.known_face_encodings = data.get('encodings', [])
                     self.known_face_ids = data.get('ids', [])
                     self.known_face_names = data.get('names', [])
+                    self.known_face_metadata = data.get('metadata', [])
                 logging.info(f"Loaded {len(self.known_face_encodings)} known faces")
             else:
                 logging.warning(f"Database file not found: {database_path}")
@@ -173,7 +174,8 @@ class FaceMatcher:
             data = {
                 'encodings': self.known_face_encodings,
                 'ids': self.known_face_ids,
-                'names': self.known_face_names
+                'names': self.known_face_names,
+                'metadata': self.known_face_metadata
             }
             with open(database_path, 'wb') as f:
                 pickle.dump(data, f)
@@ -291,13 +293,14 @@ class FaceMatcher:
             logging.error(f"Error recognizing face: {e}")
             return None, None, 0.0
     
-    def add_known_face(self, face_image: np.ndarray, student_id: str, student_name: str):
+    def add_known_face(self, face_image: np.ndarray, student_id: str, student_name: str, metadata: Dict[str, Any] = None):
         """Add a new known face to the database"""
         face_encoding = self.extract_face_features(face_image)
         if face_encoding is not None:
             self.known_face_encodings.append(face_encoding)
             self.known_face_ids.append(student_id)
             self.known_face_names.append(student_name)
+            self.known_face_metadata.append(metadata or {})
             logging.info(f"Added new face: {student_name} ({student_id})")
             return True
         else:

@@ -249,14 +249,7 @@
             <div class="card-header">
                 <h5><i class="fas fa-table"></i> Detailed Attendance Report</h5>
                 <div class="card-tools">
-                    <button class="btn btn-sm btn-outline-primary" onclick="exportReport('csv')">
-                        <i class="fas fa-download"></i> Export CSV
-                    </button>
-                    <button class="btn btn-sm btn-outline-success" onclick="exportReport('excel')">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="exportReport('pdf')">
-                        <i class="fas fa-file-pdf"></i> Export PDF
+
                     </button>
                 </div>
             </div>
@@ -265,13 +258,13 @@
                     <table class="table table-striped" id="detailedReportTable">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Class</th>
-                                <th>Present</th>
-                                <th>Late</th>
-                                <th>Absent</th>
-                                <th>Recognition Rate</th>
-                                <th>Actions</th>
+                                <th style="width: 15%;">Date</th>
+                                <th style="width: 25%;">Class</th>
+                                <th style="width: 10%;">Present</th>
+                                <th style="width: 10%;">Late</th>
+                                <th style="width: 10%;">Absent</th>
+                                <th style="width: 15%;">Recognition Rate</th>
+                                <th style="width: 60px;">View</th>
                             </tr>
                         </thead>
                         <tbody id="reportTableBody">
@@ -304,212 +297,212 @@
 
 {% block extra_scripts %}
 <script>
-// Global variables
-let attendanceTrendChart = null;
-let attendanceDistributionChart = null;
-let classPerformanceChart = null;
-let peakHoursChart = null;
+    // Global variables
+    let attendanceTrendChart = null;
+    let attendanceDistributionChart = null;
+    let classPerformanceChart = null;
+    let peakHoursChart = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadAnalyticsData();
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        loadAnalyticsData();
+    });
 
-function loadAnalyticsData() {
-    const timeRange = document.getElementById('timeRange').value;
+    function loadAnalyticsData() {
+        const timeRange = document.getElementById('timeRange').value;
 
-    showLoading('reportTableBody', true);
+        showLoading('reportTableBody', true);
 
-    fetch(`/api/analytics/dashboard?days=${timeRange}`, { credentials: 'include' })
-        .then(response => response.json())
-        .then(data => {
-            showLoading('reportTableBody', false);
+        fetch(`/api/analytics/dashboard?days=${timeRange}`, { credentials: 'include' })
+            .then(response => response.json())
+            .then(data => {
+                showLoading('reportTableBody', false);
 
-            if (data.success) {
-                updateMetrics(data.metrics);
-                updateCharts(data.charts);
-                updateAlerts(data.alerts);
-                updateTopPerformers(data.performers);
-                updatePredictions(data.predictions);
-                updateAcademicCorrelation(data.academic_correlation);
-                updatePerformanceInsights(data.performance_insights);
-                updateDetailedReport(data.report);
-            } else {
-                showToast('Failed to load analytics data', 'error');
-            }
-        })
-        .catch(error => {
-            showLoading('reportTableBody', false);
-            console.error('Error loading analytics:', error);
-            showToast('Error loading analytics data', 'error');
-        });
-}
-
-function updateMetrics(metrics) {
-    document.getElementById('totalSessions').textContent = metrics.total_sessions || 0;
-    document.getElementById('avgAttendance').textContent = `${(metrics.avg_attendance || 0).toFixed(1)}%`;
-    document.getElementById('totalStudents').textContent = metrics.total_students || 0;
-    document.getElementById('recognitionRate').textContent = `${(metrics.recognition_rate || 0).toFixed(1)}%`;
-}
-
-function updateCharts(chartData) {
-    // Attendance Trend Chart
-    if (attendanceTrendChart) {
-        attendanceTrendChart.destroy();
+                if (data.success) {
+                    updateMetrics(data.metrics);
+                    updateCharts(data.charts);
+                    updateAlerts(data.alerts);
+                    updateTopPerformers(data.performers);
+                    updatePredictions(data.predictions);
+                    updateAcademicCorrelation(data.academic_correlation);
+                    updatePerformanceInsights(data.performance_insights);
+                    updateDetailedReport(data.report);
+                } else {
+                    showToast('Failed to load analytics data', 'error');
+                }
+            })
+            .catch(error => {
+                showLoading('reportTableBody', false);
+                console.error('Error loading analytics:', error);
+                showToast('Error loading analytics data', 'error');
+            });
     }
 
-    const ctxTrend = document.getElementById('attendanceTrendChart').getContext('2d');
-    attendanceTrendChart = new Chart(ctxTrend, {
-        type: 'line',
-        data: {
-            labels: chartData.trend.labels,
-            datasets: [{
-                label: 'Attendance Rate (%)',
-                data: chartData.trend.data,
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true
-                }
+    function updateMetrics(metrics) {
+        document.getElementById('totalSessions').textContent = metrics.total_sessions || 0;
+        document.getElementById('avgAttendance').textContent = `${(metrics.avg_attendance || 0).toFixed(1)}%`;
+        document.getElementById('totalStudents').textContent = metrics.total_students || 0;
+        document.getElementById('recognitionRate').textContent = `${(metrics.recognition_rate || 0).toFixed(1)}%`;
+    }
+
+    function updateCharts(chartData) {
+        // Attendance Trend Chart
+        if (attendanceTrendChart) {
+            attendanceTrendChart.destroy();
+        }
+
+        const ctxTrend = document.getElementById('attendanceTrendChart').getContext('2d');
+        attendanceTrendChart = new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: chartData.trend.labels,
+                datasets: [{
+                    label: 'Attendance Rate (%)',
+                    data: chartData.trend.data,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
                 }
             }
+        });
+
+        // Attendance Distribution Chart
+        if (attendanceDistributionChart) {
+            attendanceDistributionChart.destroy();
         }
-    });
 
-    // Attendance Distribution Chart
-    if (attendanceDistributionChart) {
-        attendanceDistributionChart.destroy();
-    }
-
-    const ctxDist = document.getElementById('attendanceDistributionChart').getContext('2d');
-    attendanceDistributionChart = new Chart(ctxDist, {
-        type: 'doughnut',
-        data: {
-            labels: ['Present', 'Late', 'Absent'],
-            datasets: [{
-                data: chartData.distribution,
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+        const ctxDist = document.getElementById('attendanceDistributionChart').getContext('2d');
+        attendanceDistributionChart = new Chart(ctxDist, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Late', 'Absent'],
+                datasets: [{
+                    data: chartData.distribution,
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
                 }
             }
+        });
+
+        // Class Performance Chart
+        if (classPerformanceChart) {
+            classPerformanceChart.destroy();
         }
-    });
 
-    // Class Performance Chart
-    if (classPerformanceChart) {
-        classPerformanceChart.destroy();
-    }
-
-    const ctxClass = document.getElementById('classPerformanceChart').getContext('2d');
-    classPerformanceChart = new Chart(ctxClass, {
-        type: 'bar',
-        data: {
-            labels: chartData.classes.labels,
-            datasets: [{
-                label: 'Attendance Rate (%)',
-                data: chartData.classes.data,
-                backgroundColor: '#17a2b8',
-                borderColor: '#17a2b8',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
+        const ctxClass = document.getElementById('classPerformanceChart').getContext('2d');
+        classPerformanceChart = new Chart(ctxClass, {
+            type: 'bar',
+            data: {
+                labels: chartData.classes.labels,
+                datasets: [{
+                    label: 'Attendance Rate (%)',
+                    data: chartData.classes.data,
+                    backgroundColor: '#17a2b8',
+                    borderColor: '#17a2b8',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
                 }
             }
+        });
+
+        // Peak Hours Chart
+        if (peakHoursChart) {
+            peakHoursChart.destroy();
         }
-    });
 
-    // Peak Hours Chart
-    if (peakHoursChart) {
-        peakHoursChart.destroy();
-    }
-
-    const ctxHours = document.getElementById('peakHoursChart').getContext('2d');
-    peakHoursChart = new Chart(ctxHours, {
-        type: 'bar',
-        data: {
-            labels: chartData.hours.labels,
-            datasets: [{
-                label: 'Sessions',
-                data: chartData.hours.data,
-                backgroundColor: '#6f42c1',
-                borderColor: '#6f42c1',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
+        const ctxHours = document.getElementById('peakHoursChart').getContext('2d');
+        peakHoursChart = new Chart(ctxHours, {
+            type: 'bar',
+            data: {
+                labels: chartData.hours.labels,
+                datasets: [{
+                    label: 'Sessions',
+                    data: chartData.hours.data,
+                    backgroundColor: '#6f42c1',
+                    borderColor: '#6f42c1',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
-    });
-}
-
-function updateAlerts(alerts) {
-    const container = document.getElementById('alertsContainer');
-
-    if (!alerts || alerts.length === 0) {
-        container.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No system alerts at this time.</div>';
-        return;
+        });
     }
 
-    let html = '';
-    alerts.forEach(alert => {
-        const alertClass = alert.type === 'low_attendance' ? 'alert-warning' :
-                          alert.type === 'high_absence' ? 'alert-danger' : 'alert-info';
-        const icon = alert.type === 'low_attendance' ? 'fas fa-exclamation-triangle' :
-                    alert.type === 'high_absence' ? 'fas fa-times-circle' : 'fas fa-info-circle';
+    function updateAlerts(alerts) {
+        const container = document.getElementById('alertsContainer');
 
-        html += `
+        if (!alerts || alerts.length === 0) {
+            container.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No system alerts at this time.</div>';
+            return;
+        }
+
+        let html = '';
+        alerts.forEach(alert => {
+            const alertClass = alert.type === 'low_attendance' ? 'alert-warning' :
+                alert.type === 'high_absence' ? 'alert-danger' : 'alert-info';
+            const icon = alert.type === 'low_attendance' ? 'fas fa-exclamation-triangle' :
+                alert.type === 'high_absence' ? 'fas fa-times-circle' : 'fas fa-info-circle';
+
+            html += `
             <div class="alert ${alertClass}">
                 <i class="${icon}"></i>
                 <strong>${alert.title}:</strong> ${alert.message}
                 <small class="d-block mt-1">${alert.timestamp}</small>
             </div>
         `;
-    });
+        });
 
-    container.innerHTML = html;
-}
-
-function updateTopPerformers(performers) {
-    const container = document.getElementById('topPerformersContainer');
-
-    if (!performers || performers.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted">No performance data available</div>';
-        return;
+        container.innerHTML = html;
     }
 
-    let html = '<div class="list-group">';
-    performers.forEach((performer, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-        html += `
+    function updateTopPerformers(performers) {
+        const container = document.getElementById('topPerformersContainer');
+
+        if (!performers || performers.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted">No performance data available</div>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        performers.forEach((performer, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+            html += `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                     <strong>${medal} ${performer.name}</strong><br>
@@ -518,24 +511,24 @@ function updateTopPerformers(performers) {
                 <span class="badge bg-success">${performer.attendance_rate}%</span>
             </div>
         `;
-    });
-    html += '</div>';
+        });
+        html += '</div>';
 
-    container.innerHTML = html;
-}
-
-function updatePredictions(predictions) {
-    const container = document.getElementById('predictionsContainer');
-
-    if (!predictions) {
-        container.innerHTML = '<div class="alert alert-info">Predictions will be available with more data</div>';
-        return;
+        container.innerHTML = html;
     }
 
-    let html = '<div class="row">';
+    function updatePredictions(predictions) {
+        const container = document.getElementById('predictionsContainer');
 
-    // Next week prediction
-    html += `
+        if (!predictions) {
+            container.innerHTML = '<div class="alert alert-info">Predictions will be available with more data</div>';
+            return;
+        }
+
+        let html = '<div class="row">';
+
+        // Next week prediction
+        html += `
         <div class="col-md-6">
             <div class="card bg-light">
                 <div class="card-body text-center">
@@ -547,8 +540,8 @@ function updatePredictions(predictions) {
         </div>
     `;
 
-    // Risk alerts
-    html += `
+        // Risk alerts
+        html += `
         <div class="col-md-6">
             <div class="card bg-light">
                 <div class="card-body text-center">
@@ -560,139 +553,139 @@ function updatePredictions(predictions) {
         </div>
     `;
 
-    html += '</div>';
+        html += '</div>';
 
-    // Trend indicators
-    html += '<div class="mt-3">';
-    html += '<h6>Trend Indicators:</h6>';
-    html += '<div class="row">';
+        // Trend indicators
+        html += '<div class="mt-3">';
+        html += '<h6>Trend Indicators:</h6>';
+        html += '<div class="row">';
 
-    const trends = predictions.trends || [];
-    trends.forEach(trend => {
-        const trendClass = trend.direction === 'up' ? 'success' : trend.direction === 'down' ? 'danger' : 'secondary';
-        const trendIcon = trend.direction === 'up' ? 'fas fa-arrow-up' : trend.direction === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus';
+        const trends = predictions.trends || [];
+        trends.forEach(trend => {
+            const trendClass = trend.direction === 'up' ? 'success' : trend.direction === 'down' ? 'danger' : 'secondary';
+            const trendIcon = trend.direction === 'up' ? 'fas fa-arrow-up' : trend.direction === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus';
 
-        html += `
+            html += `
             <div class="col-md-4">
                 <div class="alert alert-${trendClass}">
                     <i class="${trendIcon}"></i> ${trend.metric}: ${trend.change > 0 ? '+' : ''}${trend.change}%
                 </div>
             </div>
         `;
-    });
+        });
 
-    html += '</div></div>';
+        html += '</div></div>';
 
-    container.innerHTML = html;
+        container.innerHTML = html;
 
-    // Update trend analysis chart
-    updateTrendAnalysisChart(predictions.trend_data);
-}
-
-function updateTrendAnalysisChart(trendData) {
-    if (!trendData || !trendData.labels) return;
-
-    if (window.trendAnalysisChart) {
-        window.trendAnalysisChart.destroy();
+        // Update trend analysis chart
+        updateTrendAnalysisChart(predictions.trend_data);
     }
 
-    const ctx = document.getElementById('trendAnalysisChart').getContext('2d');
-    window.trendAnalysisChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: trendData.labels,
-            datasets: [{
-                label: 'Actual Attendance',
-                data: trendData.actual,
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                tension: 0.4
-            }, {
-                label: 'Predicted Trend',
-                data: trendData.predicted,
-                borderColor: '#ffc107',
-                backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                borderDash: [5, 5],
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true
-                }
+    function updateTrendAnalysisChart(trendData) {
+        if (!trendData || !trendData.labels) return;
+
+        if (window.trendAnalysisChart) {
+            window.trendAnalysisChart.destroy();
+        }
+
+        const ctx = document.getElementById('trendAnalysisChart').getContext('2d');
+        window.trendAnalysisChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendData.labels,
+                datasets: [{
+                    label: 'Actual Attendance',
+                    data: trendData.actual,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Predicted Trend',
+                    data: trendData.predicted,
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderDash: [5, 5],
+                    tension: 0.4
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
-}
-
-function updateAcademicCorrelation(correlationData) {
-    if (!correlationData) return;
-
-    // Update correlation coefficient
-    document.getElementById('correlationCoeff').textContent = correlationData.coefficient.toFixed(2);
-
-    // Create scatter plot
-    if (window.academicCorrelationChart) {
-        window.academicCorrelationChart.destroy();
-    }
-
-    const ctx = document.getElementById('academicCorrelationChart').getContext('2d');
-    window.academicCorrelationChart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                label: 'Attendance vs Grades',
-                data: correlationData.points,
-                backgroundColor: 'rgba(40, 167, 69, 0.6)',
-                borderColor: '#28a745',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Attendance Rate (%)'
-                    },
-                    min: 0,
-                    max: 100
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
                 },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Grade Average (%)'
-                    },
-                    min: 0,
-                    max: 100
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
                 }
             }
-        }
-    });
-}
-
-function updatePerformanceInsights(insights) {
-    const container = document.getElementById('performanceInsights');
-
-    if (!insights) {
-        container.innerHTML = '<div class="alert alert-info">Performance insights will be available with academic data integration</div>';
-        return;
+        });
     }
 
-    let html = '<div class="list-group">';
+    function updateAcademicCorrelation(correlationData) {
+        if (!correlationData) return;
 
-    insights.forEach(insight => {
-        const badgeClass = insight.type === 'positive' ? 'success' : insight.type === 'warning' ? 'warning' : 'info';
-        html += `
+        // Update correlation coefficient
+        document.getElementById('correlationCoeff').textContent = correlationData.coefficient.toFixed(2);
+
+        // Create scatter plot
+        if (window.academicCorrelationChart) {
+            window.academicCorrelationChart.destroy();
+        }
+
+        const ctx = document.getElementById('academicCorrelationChart').getContext('2d');
+        window.academicCorrelationChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Attendance vs Grades',
+                    data: correlationData.points,
+                    backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                    borderColor: '#28a745',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Attendance Rate (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Grade Average (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    function updatePerformanceInsights(insights) {
+        const container = document.getElementById('performanceInsights');
+
+        if (!insights) {
+            container.innerHTML = '<div class="alert alert-info">Performance insights will be available with academic data integration</div>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+
+        insights.forEach(insight => {
+            const badgeClass = insight.type === 'positive' ? 'success' : insight.type === 'warning' ? 'warning' : 'info';
+            html += `
             <div class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -703,96 +696,50 @@ function updatePerformanceInsights(insights) {
                 </div>
             </div>
         `;
-    });
+        });
 
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-    let html = '<div class="list-group">';
-    performers.forEach((performer, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-        html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold">${medal} ${performer.name}</span><br>
-                    <small class="text-muted">${performer.class_name}</small>
-                </div>
-                <span class="badge bg-success">${performer.attendance_rate}%</span>
-            </div>
-        `;
-    });
-    html += '</div>';
-
-    container.innerHTML = html;
-}
-
-function updateDetailedReport(reportData) {
-    const tbody = document.getElementById('reportTableBody');
-    tbody.innerHTML = '';
-
-    if (!reportData || reportData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No data available</td></tr>';
-        return;
+        html += '</div>';
+        container.innerHTML = html;
     }
 
-    reportData.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+
+
+    function updateDetailedReport(reportData) {
+        const tbody = document.getElementById('reportTableBody');
+        tbody.innerHTML = '';
+
+        if (!reportData || reportData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No data available</td></tr>';
+            return;
+        }
+
+        reportData.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
             <td>${row.date}</td>
             <td>${row.class_name}</td>
             <td><span class="badge bg-success">${row.present}</span></td>
             <td><span class="badge bg-warning">${row.late}</span></td>
             <td><span class="badge bg-danger">${row.absent}</span></td>
             <td>${row.recognition_rate ? row.recognition_rate.toFixed(1) + '%' : 'N/A'}</td>
-            <td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-info" onclick="viewSessionDetails(${row.session_id})">
                     <i class="fas fa-eye"></i>
                 </button>
             </td>
         `;
-        tbody.appendChild(tr);
-    });
-}
+            tbody.appendChild(tr);
+        });
+    }
 
-function refreshAnalytics() {
-    loadAnalyticsData();
-    showToast('Analytics refreshed!', 'success');
-}
+    function refreshAnalytics() {
+        loadAnalyticsData();
+        showToast('Analytics refreshed!', 'success');
+    }
 
-function exportReport(format) {
-    const timeRange = document.getElementById('timeRange').value;
-
-    showToast(`Exporting ${format.toUpperCase()} report...`, 'info');
-
-    fetch(`/api/analytics/export?format=${format}&days=${timeRange}`, {
-        credentials: 'include'
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.blob();
-        } else {
-            throw new Error('Export failed');
-        }
-    })
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance_report_${new Date().toISOString().split('T')[0]}.${format}`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        showToast(`${format.toUpperCase()} report exported successfully!`, 'success');
-    })
-    .catch(error => {
-        console.error('Export error:', error);
-        showToast('Failed to export report', 'error');
-    });
-}
-
-function viewSessionDetails(sessionId) {
-    // This would open a modal with session details
-    showToast('Session details feature coming soon!', 'info');
-}
+    function viewSessionDetails(sessionId) {
+        // This would open a modal with session details
+        showToast('Session details feature coming soon!', 'info');
+    }
 </script>
 {% endblock %}

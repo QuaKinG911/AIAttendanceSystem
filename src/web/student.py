@@ -35,9 +35,12 @@ def student_dashboard():
                     'teacher_name': teacher_name
                 })
 
+    user = User.query.get(user_id)
+    
     return render_template('student_dashboard.html', 
                          user_role='student', 
                          username=session.get('username', 'student'),
+                         user=user,
                          schedule=schedule,
                          class_name=class_name)
 

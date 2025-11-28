@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Class Details - AI Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-users"></i> Class Details: {{ class_name }}</h5>
+                <a href="/teacher/classes" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to
+                    Classes</a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h6>Student Attendance History (Last 5 Sessions)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="attendance-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <!-- Session dates will be inserted here dynamically -->
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center">Loading attendance data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const classId = parseInt("{{ class_id }}");
+        loadClassDetails(classId);
+    });
+
+    function loadClassDetails(classId) {
+        fetch(`/api/classes/${classId}/students`, { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to load class details');
+                }
+            })
+            .then(data => {
+                renderAttendanceTable(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('attendance-body').innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger">Error loading data</td></tr>';
+            });
+    }
+
+    function renderAttendanceTable(data) {
+        const thead = document.querySelector('#attendance-table thead tr');
+        const tbody = document.getElementById('attendance-body');
+
+        // Clear existing dynamic headers (keep first 2)
+        while (thead.children.length > 2) {
+            thead.removeChild(thead.lastChild);
+        }
+        tbody.innerHTML = '';
+
+        if (!data.sessions || data.sessions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center">No sessions found</td></tr>';
+            return;
+        }
+
+        // Add session headers
+        data.sessions.forEach(session => {
+            const th = document.createElement('th');
+            th.textContent = new Date(session.date).toLocaleDateString();
+            thead.appendChild(th);
+        });
+
+        // Add student rows
+        data.students.forEach(student => {
+            const tr = document.createElement('tr');
+
+            // Name
+            tr.innerHTML = `
+            <td>${student.name}</td>
+        `;
+
+            // Attendance status for each session
+            data.sessions.forEach(session => {
+                const td = document.createElement('td');
+                const status = student.attendance[session.id] || 'N/A';
+
+                let badgeClass = 'bg-secondary';
+                if (status === 'present') badgeClass = 'bg-success';
+                else if (status === 'absent') badgeClass = 'bg-danger';
+                else if (status === 'late') badgeClass = 'bg-warning text-dark';
+
+                td.innerHTML = `<span class="badge ${badgeClass}">${status.toUpperCase()}</span>`;
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+</script>
+{% endblock %}

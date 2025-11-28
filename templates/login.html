@@ -2,12 +2,13 @@
 
 {% block title %}Login - AI Attendance System{% endblock %}
 
+{% block layout_wrapper %}
 {% block content %}
 <div class="container-fluid p-0" style="height: 100vh; overflow: hidden;">
     <div class="row g-0 h-100">
         <!-- Left Side: Academic Imagery & Branding -->
         <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center text-white position-relative"
-            style="background: linear-gradient(135deg, rgba(0, 40, 85, 0.95) 0%, rgba(0, 30, 60, 0.98) 100%), url('{{ url_for('static', filename='images/campus_bg.jpg') }}'); background-size: cover; background-position: center;">
+            style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%), url('{{ url_for('static', filename='images/campus_bg.jpg') }}'); background-size: cover; background-position: center;">
 
             <!-- Decorative Overlay Pattern (CSS only) -->
             <div
@@ -17,7 +18,7 @@
             <div class="position-relative z-index-1 text-center px-5">
                 <img src="{{ url_for('static', filename='images/yzu.png') }}" alt="YZU Logo" height="120"
                     class="mb-4 drop-shadow">
-                <h1 class="display-4 fw-bold mb-3" style="font-family: var(--font-heading); color: #fff;">AI Attendance
+                <h1 class="display-4 fw-bold mb-3" style="font-family: var(--font-main); color: #fff;">AI Attendance
                     System</h1>
                 <p class="lead mb-4" style="font-weight: 300; opacity: 0.9;">Excellence in Academic Management</p>
                 <hr class="w-25 mx-auto bg-white opacity-50 mb-4">
@@ -25,7 +26,7 @@
             </div>
 
             <div class="position-absolute bottom-0 w-100 text-center pb-4 text-white-50 small">
-                &copy; {{ now.year if now else 2023 }} University System. All Rights Reserved.
+                &copy; {{ now.year if now else 2025 }} AI Attendance System. All rights reserved.
             </div>
         </div>
 
@@ -39,7 +40,7 @@
                 </div>
 
                 <div class="mb-5">
-                    <h2 class="fw-bold text-primary mb-1">Welcome Back</h2>
+                    <h2 class="fw-bold text-primary mb-1">Welcome!</h2>
                     <p class="text-muted">Please sign in to access your portal.</p>
                 </div>
 
@@ -97,6 +98,7 @@
     </div>
 </div>
 
+
 <style>
     /* Custom overrides for login page */
     body {
@@ -131,4 +133,5 @@
         filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
     }
 </style>
+{% endblock %}
 {% endblock %}

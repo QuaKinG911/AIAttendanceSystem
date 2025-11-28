@@ -50,3 +50,18 @@ def live_attendance():
     if 'user_id' not in session or session.get('role') != 'teacher':
         return redirect(url_for('web_auth.login'))
     return render_template('live_attendance.html', user_role='teacher', username=session.get('username', 'teacher'))
+
+@web_teacher_bp.route('/teacher/classes/<int:class_id>')
+def teacher_class_details(class_id):
+    if 'user_id' not in session or session.get('role') != 'teacher':
+        return redirect(url_for('web_auth.login'))
+    
+    class_obj = Class.query.get(class_id)
+    if not class_obj:
+        return redirect(url_for('web_teacher.teacher_classes'))
+        
+    return render_template('teacher_class_details.html', 
+                         user_role='teacher', 
+                         username=session.get('username', 'teacher'),
+                         class_id=class_id,
+                         class_name=class_obj.name)

@@ -25,42 +25,42 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    loadTeacherClasses();
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        loadTeacherClasses();
+    });
 
-function loadTeacherClasses() {
-    fetch('/api/classes', { credentials: 'include' })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 403) {
-                window.location.href = '/login';
-                return [];
-            }
-        })
-        .then(data => {
-            if (data) {
-                displayClasses(data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading classes:', error);
-        });
-}
-
-function displayClasses(classes) {
-    const container = document.getElementById('classes-container');
-
-    if (classes.length === 0) {
-        container.innerHTML = '<p class="text-muted">No classes assigned to you.</p>';
-        return;
+    function loadTeacherClasses() {
+        fetch('/api/classes', { credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    window.location.href = '/login';
+                    return [];
+                }
+            })
+            .then(data => {
+                if (data) {
+                    displayClasses(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading classes:', error);
+            });
     }
 
-    let html = '<div class="row">';
-    classes.forEach(cls => {
-        const time = new Date(cls.start_time).toLocaleTimeString();
-        html += `
+    function displayClasses(classes) {
+        const container = document.getElementById('classes-container');
+
+        if (classes.length === 0) {
+            container.innerHTML = '<p class="text-muted">No classes assigned to you.</p>';
+            return;
+        }
+
+        let html = '<div class="row">';
+        classes.forEach(cls => {
+            const time = new Date(cls.start_time).toLocaleTimeString();
+            html += `
             <div class="col-md-6 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -76,14 +76,14 @@ function displayClasses(classes) {
                 </div>
             </div>
         `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
 
-function viewClassDetails(classId) {
-    // Redirect to attendance page for this class or show modal
-    window.location.href = `/teacher/attendance?class_id=${classId}`;
-}
+    function viewClassDetails(classId) {
+        // Redirect to class details page
+        window.location.href = `/teacher/classes/${classId}`;
+    }
 </script>
 {% endblock %}

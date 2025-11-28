@@ -8,10 +8,6 @@
         <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management-view"
             type="button" role="tab">Teacher Management</button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="workload-tab" data-bs-toggle="tab" data-bs-target="#workload-view" type="button"
-            role="tab">Workload Balancing</button>
-    </li>
 </ul>
 <div class="tab-content mt-3" id="teacherTabsContent">
     <div class="tab-pane fade show active" id="management-view" role="tabpanel">
@@ -33,113 +29,19 @@
                             <table class="table table-striped" id="teachersTable">
                                 <thead>
                                     <tr>
-                                        <th>Full Name</th>
-                                        <th>Email</th>
-                                        <th>Nationality</th>
-                                        <th>Courses</th>
-                                        <th>Birthday</th>
-                                        <th>Actions</th>
+                                        <th style="width: 20%;">Full Name</th>
+                                        <th style="width: 25%;">Email</th>
+                                        <th style="width: 15%;">Nationality</th>
+                                        <th style="width: 20%;">Courses</th>
+                                        <th style="width: 15%;">Birthday</th>
+                                        <th style="width: 60px;">Edit</th>
+                                        <th style="width: 60px;">Delete</th>
                                     </tr>
                                 </thead>
                                 <tbody id="teachersTableBody">
                                     <!-- Teachers will be loaded here -->
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="tab-pane fade" id="workload-view" role="tabpanel">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-balance-scale"></i> Workload Analysis & Balancing</h5>
-                        <div>
-                            <button class="btn btn-info" onclick="analyzeWorkload()">
-                                <i class="fas fa-chart-bar"></i> Analyze Workload
-                            </button>
-                            <button class="btn btn-warning ms-2" onclick="balanceWorkload()">
-                                <i class="fas fa-magic"></i> Auto Balance
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="workloadAnalysis" style="display: none;">
-                            <h6>Workload Summary</h6>
-                            <div class="row mb-3">
-                                <div class="col-md-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <h4 id="totalTeachers">-</h4>
-                                            <small>Total Teachers</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <h4 id="avgHours">-</h4>
-                                            <small>Avg Hours/Week</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <h4 id="unbalancedCount">-</h4>
-                                            <small>Unbalanced Teachers</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <h4 id="totalSuggestions">-</h4>
-                                            <small>Rebalancing Suggestions</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <h6>Teacher Workload Details</h6>
-                            <div class="table-responsive">
-                                <table class="table table-striped" id="workloadTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Teacher</th>
-                                            <th>Total Hours</th>
-                                            <th>Total Courses</th>
-                                            <th>Classes</th>
-                                            <th>Balance Score</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="workloadTableBody">
-                                        <!-- Workload data will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div id="balancingSuggestions" style="display: none;">
-                                <h6 class="mt-4">Rebalancing Suggestions</h6>
-                                <div class="alert alert-info">
-                                    <strong>Auto-balancing Recommendations:</strong> The following course reassignments
-                                    are suggested to improve workload balance.
-                                </div>
-                                <div id="suggestionsList">
-                                    <!-- Suggestions will be loaded here -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="workloadLoading" class="text-center">
-                            <div class="spinner-border" role="status">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                            <p class="mt-2">Analyzing teacher workloads...</p>
                         </div>
                     </div>
                 </div>
@@ -313,10 +215,12 @@
             <td>${teacher.nationality || 'N/A'}</td>
             <td>${courses}</td>
             <td>${birthday}</td>
-            <td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary" onclick="editTeacher(${teacher.id})">
                     <i class="fas fa-edit"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteTeacher(${teacher.id})">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -446,147 +350,6 @@
         } catch (error) {
             console.error('Error deleting teacher:', error);
             alert('Error deleting teacher');
-        }
-    }
-
-    async function analyzeWorkload() {
-        document.getElementById('workloadLoading').style.display = 'block';
-        document.getElementById('workloadAnalysis').style.display = 'none';
-
-        try {
-            const response = await fetch('/api/admin/workload/analysis', { credentials: 'include' });
-            if (response.ok) {
-                const data = await response.json();
-                displayWorkloadAnalysis(data);
-            } else {
-                alert('Error analyzing workload');
-            }
-        } catch (error) {
-            console.error('Error analyzing workload:', error);
-            alert('Error analyzing workload');
-        }
-
-        document.getElementById('workloadLoading').style.display = 'none';
-    }
-
-    function displayWorkloadAnalysis(data) {
-        // Update summary cards
-        document.getElementById('totalTeachers').textContent = data.length;
-        const avgHours = data.length > 0 ? (data.reduce((sum, t) => sum + t.total_hours, 0) / data.length).toFixed(1) : 0;
-        document.getElementById('avgHours').textContent = avgHours;
-        document.getElementById('unbalancedCount').textContent = data.filter(t => t.balance_score > 1.0).length;
-
-        // Display workload table
-        const tbody = document.getElementById('workloadTableBody');
-        tbody.innerHTML = '';
-
-        data.forEach(teacher => {
-            const statusBadge = teacher.balance_score > 1.0 ?
-                '<span class="badge bg-warning">Unbalanced</span>' :
-                '<span class="badge bg-success">Balanced</span>';
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-            <td>${teacher.teacher_name}</td>
-            <td>${teacher.total_hours}h</td>
-            <td>${teacher.total_courses}</td>
-            <td>${teacher.classes_count}</td>
-            <td>${teacher.balance_score}</td>
-            <td>${statusBadge}</td>
-        `;
-            tbody.appendChild(row);
-        });
-
-        document.getElementById('workloadAnalysis').style.display = 'block';
-    }
-
-    async function balanceWorkload() {
-        if (!confirm('This will analyze current workloads and suggest course reassignments. Continue?')) return;
-
-        document.getElementById('workloadLoading').style.display = 'block';
-
-        try {
-            const response = await fetch('/api/admin/workload/balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ target_balance_score: 1.0 })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                displayBalancingSuggestions(data);
-            } else {
-                alert('Error generating balancing suggestions');
-            }
-        } catch (error) {
-            console.error('Error balancing workload:', error);
-            alert('Error balancing workload');
-        }
-
-        document.getElementById('workloadLoading').style.display = 'none';
-    }
-
-    function displayBalancingSuggestions(data) {
-        document.getElementById('totalSuggestions').textContent = data.suggestions.length;
-
-        const suggestionsDiv = document.getElementById('suggestionsList');
-        suggestionsDiv.innerHTML = '';
-
-        if (data.suggestions.length === 0) {
-            suggestionsDiv.innerHTML = '<div class="alert alert-success">All teachers have balanced workloads. No changes needed.</div>';
-        } else {
-            data.suggestions.forEach((suggestion, index) => {
-                const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                const suggestionCard = document.createElement('div');
-                suggestionCard.className = 'card mb-3';
-                suggestionCard.innerHTML = `
-                <div class="card-body">
-                    <h6 class="card-title">Suggestion ${index + 1}: ${suggestion.course_name}</h6>
-                    <p class="card-text">
-                        <strong>Current:</strong> ${suggestion.current_teacher}<br>
-                        <strong>Suggested:</strong> ${suggestion.suggested_teachers.join(', ')}<br>
-                        <strong>Reason:</strong> ${suggestion.reason}
-                    </p>
-                    <button class="btn btn-sm btn-primary" onclick="applySuggestion(${suggestion.course_id}, '${suggestion.suggested_teachers[0]}')">
-                        Apply Suggestion
-                    </button>
-                </div>
-            `;
-                suggestionsDiv.appendChild(suggestionCard);
-            });
-        }
-
-        document.getElementById('balancingSuggestions').style.display = 'block';
-    }
-
-    async function applySuggestion(courseId, newTeacherUsername) {
-        // Find teacher ID by username
-        const teacher = teachers.find(t => t.username === newTeacherUsername);
-        if (!teacher) {
-            alert('Teacher not found');
-            return;
-        }
-
-        if (!confirm(`Reassign course to ${newTeacherUsername}?`)) return;
-
-        try {
-            const response = await fetch(`/api/admin/classes/course/${courseId}/reassign`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ teacher_id: teacher.id })
-            });
-
-            if (response.ok) {
-                alert('Course reassigned successfully!');
-                analyzeWorkload(); // Refresh analysis
-            } else {
-                alert('Error reassigning course');
-            }
-        } catch (error) {
-            console.error('Error reassigning course:', error);
-            alert('Error reassigning course');
         }
     }
 

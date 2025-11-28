@@ -19,32 +19,34 @@
                 <h2><i class="fas fa-users"></i> User Management</h2>
                 <p class="text-muted">Manage students, teachers, and administrators</p>
             </div>
-            <button class="btn btn-primary" onclick="showCreateUserModal()" data-bs-toggle="tooltip" data-bs-placement="top" title="Create a new user account">
+            <button class="btn btn-primary" onclick="showCreateUserModal()" data-bs-toggle="tooltip"
+                data-bs-placement="top" title="Create a new user account">
                 <i class="fas fa-plus"></i> Create User
             </button>
         </div>
     </div>
 </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped" id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <!-- Users will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="card-body">
+    <div class="table-responsive">
+        <table class="table table-striped" id="usersTable">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Username</th>
+                    <th style="width: 25%;">Email</th>
+                    <th style="width: 10%;">Role</th>
+                    <th style="width: 15%;">Created</th>
+                    <th style="width: 60px;">Edit</th>
+                    <th style="width: 60px;">Delete</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                <!-- Users will be loaded here -->
+            </tbody>
+        </table>
     </div>
+</div>
+</div>
+</div>
 </div>
 
 <!-- Create User Modal -->
@@ -80,7 +82,8 @@
                     <div class="mb-3" id="faceImageField" style="display: none;">
                         <label for="faceImage" class="form-label">Face Image (Required for Students)</label>
                         <input type="file" class="form-control" id="faceImage" accept="image/*" required>
-                        <small class="form-text text-muted">Upload a clear photo of the student's face for AI attendance recognition</small>
+                        <small class="form-text text-muted">Upload a clear photo of the student's face for AI attendance
+                            recognition</small>
                     </div>
                 </form>
             </div>
@@ -165,7 +168,8 @@
                     </div>
                     <div class="mb-3" id="teacherFields" style="display: none;">
                         <label for="editCourses" class="form-label">Courses (comma-separated)</label>
-                        <input type="text" class="form-control" id="editCourses" placeholder="e.g. Math, Science, English">
+                        <input type="text" class="form-control" id="editCourses"
+                            placeholder="e.g. Math, Science, English">
                     </div>
                     <div class="mb-3">
                         <label for="editPassword" class="form-label">New Password (leave empty to keep current)</label>
@@ -182,295 +186,297 @@
 </div>
 
 <script>
-let users = [];
+    let users = [];
 
-async function loadUsers() {
-    showLoading('usersTableBody', true);
-    try {
-        const response = await fetch('/api/admin/users', { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            users = data.users;
-            displayUsers();
-        } else if (response.status === 403) {
-            // Redirect to login if unauthorized
-            window.location.href = '/login';
-        } else {
-            showToast('Failed to load users', 'error');
+    async function loadUsers() {
+        showLoading('usersTableBody', true);
+        try {
+            const response = await fetch('/api/admin/users', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                users = data.users;
+                displayUsers();
+            } else if (response.status === 403) {
+                // Redirect to login if unauthorized
+                window.location.href = '/login';
+            } else {
+                showToast('Failed to load users', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+            showToast('Error loading users', 'error');
+        } finally {
+            showLoading('usersTableBody', false);
         }
-    } catch (error) {
-        console.error('Error loading users:', error);
-        showToast('Error loading users', 'error');
-    } finally {
-        showLoading('usersTableBody', false);
-    }
-}
-
-function displayUsers() {
-    const tbody = document.getElementById('usersTableBody');
-    tbody.innerHTML = '';
-
-    if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users found</td></tr>';
-        return;
     }
 
-    users.forEach(user => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    function displayUsers() {
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users found</td></tr>';
+            return;
+        }
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td>${user.username}</td>
             <td>${user.email}</td>
             <td><span class="badge bg-${getRoleColor(user.role)}">${user.role}</span></td>
             <td>${new Date(user.created_at).toLocaleDateString()}</td>
-            <td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit user details and permissions">
                     <i class="fas fa-edit"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Permanently delete this user account">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
-        tbody.appendChild(row);
-    });
-}
-
-function getRoleColor(role) {
-    switch(role) {
-        case 'admin': return 'danger';
-        case 'teacher': return 'success';
-        case 'student': return 'primary';
-        default: return 'secondary';
-    }
-}
-
-function showCreateUserModal() {
-    document.getElementById('createUserForm').reset();
-    new bootstrap.Modal(document.getElementById('createUserModal')).show();
-}
-
-function toggleFaceUpload() {
-    const role = document.getElementById('role').value;
-    const faceField = document.getElementById('faceImageField');
-    const faceInput = document.getElementById('faceImage');
-
-    if (role === 'student') {
-        faceField.style.display = 'block';
-        faceInput.required = true;
-    } else {
-        faceField.style.display = 'none';
-        faceInput.required = false;
-    }
-}
-
-async function createUser() {
-    const createBtn = document.querySelector('#createUserModal .btn-primary');
-    const originalText = createBtn.innerHTML;
-    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-    createBtn.disabled = true;
-
-    const role = document.getElementById('role').value;
-    const userData = {
-        username: document.getElementById('username').value,
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-        role: role
-    };
-
-    // Handle file upload for students
-    if (role === 'student') {
-        const faceImage = document.getElementById('faceImage').files[0];
-        if (!faceImage) {
-            alert('Face image is required for students');
-            return;
-        }
-
-        // Use FormData for file upload
-        const formData = new FormData();
-        Object.keys(userData).forEach(key => {
-            formData.append(key, userData[key]);
+            tbody.appendChild(row);
         });
-        formData.append('face_image', faceImage);
+    }
 
-        try {
-            const response = await fetch('/api/admin/users', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
-                document.getElementById('createUserForm').reset();
-                toggleFaceUpload(); // Reset the form state
-                loadUsers();
-                showToast('Student created successfully with face recognition enabled!', 'success');
-            } else {
-                const error = await response.json();
-                showToast('Error: ' + error.error, 'error');
-            }
-        } catch (error) {
-            console.error('Error creating user:', error);
-            showToast('Error creating user', 'error');
-        } finally {
-            createBtn.innerHTML = originalText;
-            createBtn.disabled = false;
+    function getRoleColor(role) {
+        switch (role) {
+            case 'admin': return 'danger';
+            case 'teacher': return 'success';
+            case 'student': return 'primary';
+            default: return 'secondary';
         }
-    } else {
-        // Regular user creation for teachers/admins
+    }
+
+    function showCreateUserModal() {
+        document.getElementById('createUserForm').reset();
+        new bootstrap.Modal(document.getElementById('createUserModal')).show();
+    }
+
+    function toggleFaceUpload() {
+        const role = document.getElementById('role').value;
+        const faceField = document.getElementById('faceImageField');
+        const faceInput = document.getElementById('faceImage');
+
+        if (role === 'student') {
+            faceField.style.display = 'block';
+            faceInput.required = true;
+        } else {
+            faceField.style.display = 'none';
+            faceInput.required = false;
+        }
+    }
+
+    async function createUser() {
+        const createBtn = document.querySelector('#createUserModal .btn-primary');
+        const originalText = createBtn.innerHTML;
+        createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        createBtn.disabled = true;
+
+        const role = document.getElementById('role').value;
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: role
+        };
+
+        // Handle file upload for students
+        if (role === 'student') {
+            const faceImage = document.getElementById('faceImage').files[0];
+            if (!faceImage) {
+                alert('Face image is required for students');
+                return;
+            }
+
+            // Use FormData for file upload
+            const formData = new FormData();
+            Object.keys(userData).forEach(key => {
+                formData.append(key, userData[key]);
+            });
+            formData.append('face_image', faceImage);
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                    document.getElementById('createUserForm').reset();
+                    toggleFaceUpload(); // Reset the form state
+                    loadUsers();
+                    showToast('Student created successfully with face recognition enabled!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                showToast('Error creating user', 'error');
+            } finally {
+                createBtn.innerHTML = originalText;
+                createBtn.disabled = false;
+            }
+        } else {
+            // Regular user creation for teachers/admins
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                    document.getElementById('createUserForm').reset();
+                    loadUsers();
+                    showToast('User created successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                showToast('Error creating user', 'error');
+            } finally {
+                createBtn.innerHTML = originalText;
+                createBtn.disabled = false;
+            }
+        }
+    }
+
+    function editUser(userId) {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editUsername').value = user.username || '';
+        document.getElementById('editEmail').value = user.email;
+        document.getElementById('editFullName').value = user.full_name || '';
+        document.getElementById('editNationality').value = user.nationality || '';
+        document.getElementById('editBirthday').value = user.birthday ? user.birthday.split('T')[0] : '';
+        document.getElementById('editRole').value = user.role;
+        document.getElementById('editMajor').value = user.major || '';
+        document.getElementById('editGrade').value = user.grade || '';
+        document.getElementById('editCourses').value = user.courses ? user.courses.join(', ') : '';
+        document.getElementById('editPassword').value = '';
+
+        // Show/hide role-specific fields
+        toggleRoleFields(user.role);
+
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }
+
+    async function updateUser() {
+        const userId = document.getElementById('editUserId').value;
+        const userData = {
+            username: document.getElementById('editUsername').value,
+            email: document.getElementById('editEmail').value,
+            full_name: document.getElementById('editFullName').value,
+            nationality: document.getElementById('editNationality').value,
+            role: document.getElementById('editRole').value
+        };
+
+        const birthday = document.getElementById('editBirthday').value;
+        if (birthday) {
+            userData.birthday = birthday;
+        }
+
+        const role = userData.role;
+        if (role === 'student') {
+            userData.major = document.getElementById('editMajor').value;
+            userData.grade = document.getElementById('editGrade').value;
+        } else if (role === 'teacher') {
+            const courses = document.getElementById('editCourses').value;
+            userData.courses = courses ? courses.split(',').map(c => c.trim()) : [];
+        }
+
+        const password = document.getElementById('editPassword').value;
+        if (password) {
+            userData.password = password;
+        }
+
         try {
-            const response = await fetch('/api/admin/users', {
-                method: 'POST',
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(userData)
             });
 
             if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
-                document.getElementById('createUserForm').reset();
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
                 loadUsers();
-                showToast('User created successfully!', 'success');
+                alert('User updated successfully!');
             } else {
                 const error = await response.json();
-                showToast('Error: ' + error.error, 'error');
+                alert('Error: ' + error.error);
             }
         } catch (error) {
-            console.error('Error creating user:', error);
-            showToast('Error creating user', 'error');
-        } finally {
-            createBtn.innerHTML = originalText;
-            createBtn.disabled = false;
+            console.error('Error updating user:', error);
+            alert('Error updating user');
         }
     }
-}
 
-function editUser(userId) {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+    async function deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
 
-    document.getElementById('editUserId').value = user.id;
-    document.getElementById('editUsername').value = user.username || '';
-    document.getElementById('editEmail').value = user.email;
-    document.getElementById('editFullName').value = user.full_name || '';
-    document.getElementById('editNationality').value = user.nationality || '';
-    document.getElementById('editBirthday').value = user.birthday ? user.birthday.split('T')[0] : '';
-    document.getElementById('editRole').value = user.role;
-    document.getElementById('editMajor').value = user.major || '';
-    document.getElementById('editGrade').value = user.grade || '';
-    document.getElementById('editCourses').value = user.courses ? user.courses.join(', ') : '';
-    document.getElementById('editPassword').value = '';
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
 
-    // Show/hide role-specific fields
-    toggleRoleFields(user.role);
-
-    new bootstrap.Modal(document.getElementById('editUserModal')).show();
-}
-
-async function updateUser() {
-    const userId = document.getElementById('editUserId').value;
-    const userData = {
-        username: document.getElementById('editUsername').value,
-        email: document.getElementById('editEmail').value,
-        full_name: document.getElementById('editFullName').value,
-        nationality: document.getElementById('editNationality').value,
-        role: document.getElementById('editRole').value
-    };
-
-    const birthday = document.getElementById('editBirthday').value;
-    if (birthday) {
-        userData.birthday = birthday;
-    }
-
-    const role = userData.role;
-    if (role === 'student') {
-        userData.major = document.getElementById('editMajor').value;
-        userData.grade = document.getElementById('editGrade').value;
-    } else if (role === 'teacher') {
-        const courses = document.getElementById('editCourses').value;
-        userData.courses = courses ? courses.split(',').map(c => c.trim()) : [];
-    }
-
-    const password = document.getElementById('editPassword').value;
-    if (password) {
-        userData.password = password;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(userData)
-        });
-
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-            loadUsers();
-            alert('User updated successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
-        }
-    } catch (error) {
-        console.error('Error updating user:', error);
-        alert('Error updating user');
-    }
-}
-
-async function deleteUser(userId) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
-
-        if (response.ok) {
-            loadUsers();
-            alert('User deleted successfully!');
-        } else {
+            if (response.ok) {
+                loadUsers();
+                alert('User deleted successfully!');
+            } else {
+                alert('Error deleting user');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
             alert('Error deleting user');
         }
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user');
-    }
-}
-
-function toggleRoleFields(role) {
-    document.getElementById('studentFields').style.display = role === 'student' ? 'block' : 'none';
-    document.getElementById('teacherFields').style.display = role === 'teacher' ? 'block' : 'none';
-}
-
-// Add event listener for role change
-document.getElementById('editRole').addEventListener('change', function() {
-    toggleRoleFields(this.value);
-});
-
-// Keyboard shortcuts for user management
-document.addEventListener('keydown', function(event) {
-    // Ctrl+N to create new user
-    if (event.ctrlKey && event.key === 'n') {
-        event.preventDefault();
-        showCreateUserModal();
     }
 
-    // Ctrl+S to save in modals
-    if (event.ctrlKey && event.key === 's') {
-        event.preventDefault();
-        const activeModal = document.querySelector('.modal.show');
-        if (activeModal) {
-            const saveBtn = activeModal.querySelector('.btn-primary');
-            if (saveBtn && !saveBtn.disabled) {
-                saveBtn.click();
+    function toggleRoleFields(role) {
+        document.getElementById('studentFields').style.display = role === 'student' ? 'block' : 'none';
+        document.getElementById('teacherFields').style.display = role === 'teacher' ? 'block' : 'none';
+    }
+
+    // Add event listener for role change
+    document.getElementById('editRole').addEventListener('change', function () {
+        toggleRoleFields(this.value);
+    });
+
+    // Keyboard shortcuts for user management
+    document.addEventListener('keydown', function (event) {
+        // Ctrl+N to create new user
+        if (event.ctrlKey && event.key === 'n') {
+            event.preventDefault();
+            showCreateUserModal();
+        }
+
+        // Ctrl+S to save in modals
+        if (event.ctrlKey && event.key === 's') {
+            event.preventDefault();
+            const activeModal = document.querySelector('.modal.show');
+            if (activeModal) {
+                const saveBtn = activeModal.querySelector('.btn-primary');
+                if (saveBtn && !saveBtn.disabled) {
+                    saveBtn.click();
+                }
             }
         }
-    }
-});
+    });
 
-// Load users on page load
-document.addEventListener('DOMContentLoaded', loadUsers);
+    // Load users on page load
+    document.addEventListener('DOMContentLoaded', loadUsers);
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, g
+from flask import Blueprint, jsonify, g, request
 from src.api.attendance import session_or_jwt_required
-from src.models import db, User, Class, Course, AttendanceSession, AttendanceRecord, AttendanceStatus
+from src.models import db, User, Class, Course, AttendanceSession, AttendanceRecord, AttendanceStatus, Enrollment
+from src.analytics import get_attendance_trends, detect_anomalies
 from sqlalchemy import func
 from datetime import datetime
 
@@ -22,39 +23,25 @@ def get_teacher_class_analytics():
         # Get courses taught by this teacher
         courses = Course.query.filter_by(teacher_id=user.id).all()
         
+        # Get unique class IDs from courses
+        class_ids = set(course.class_id for course in courses)
+        
         analytics = []
         
-        for course in courses:
-            class_obj = Class.query.get(course.class_id)
+        for class_id in class_ids:
+            class_obj = Class.query.get(class_id)
             if not class_obj:
                 continue
                 
-            # Get all sessions for this class (filtered by course/teacher implicitly via class_id for now)
-            # Note: In a real app, we might want to filter sessions by course_id if multiple teachers teach the same class
+            # Get all sessions for this class
             sessions = AttendanceSession.query.filter_by(class_id=class_obj.id).all()
             total_sessions = len(sessions)
             
             # Calculate average attendance
             total_attendance_rate = 0
-            recent_sessions_count = 0
             
-            # Get total students in class (assuming we have a way to count them, 
-            # for now we'll count unique students who have attended or are enrolled)
-            # Since we don't have an explicit enrollment table in the models shown so far,
-            # we might have to estimate or use a placeholder. 
-            # Let's assume all students in the system are potential students for simplicity 
-            # or better, count unique students who have attendance records for this class.
-            
-            # A better approach if Enrollment model exists:
-            # total_students = Enrollment.query.filter_by(class_id=class_obj.id).count()
-            
-            # Fallback: Count unique students from attendance records for this class
-            unique_students = db.session.query(AttendanceRecord.student_id)\
-                .join(AttendanceSession)\
-                .filter(AttendanceSession.class_id == class_obj.id)\
-                .distinct().count()
-            
-            total_students = unique_students if unique_students > 0 else 0
+            # Get total students in class using Enrollment model
+            total_students = Enrollment.query.filter_by(class_id=class_obj.id).count()
             
             if total_sessions > 0:
                 # Calculate attendance rate per session
@@ -90,4 +77,79 @@ def get_teacher_class_analytics():
         
     except Exception as e:
         logger.error(f"Analytics Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@analytics_bp.route('/dashboard', methods=['GET'])
+@session_or_jwt_required
+def get_student_dashboard_analytics():
+    """Get attendance analytics for the student dashboard"""
+    user = g.user
+    
+    if user.role.value != 'student':
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    try:
+        # Get all attendance records for this student
+        records = AttendanceRecord.query.filter_by(student_id=user.id).all()
+        
+        present_count = 0
+        late_count = 0
+        absent_count = 0
+        
+        for record in records:
+            if record.status == AttendanceStatus.PRESENT:
+                present_count += 1
+            elif record.status == AttendanceStatus.LATE:
+                late_count += 1
+            elif record.status == AttendanceStatus.ABSENT:
+                absent_count += 1
+                
+        return jsonify({
+            'attendance_breakdown': {
+                'present': present_count,
+                'late': late_count,
+                'absent': absent_count
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Dashboard Analytics Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@analytics_bp.route('/trends', methods=['GET'])
+@session_or_jwt_required
+def get_trends():
+    """Get attendance trends"""
+    try:
+        days = int(request.args.get('days', 30))
+        trends = get_attendance_trends(days=days)
+        return jsonify(trends)
+    except Exception as e:
+        logger.error(f"Trends Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@analytics_bp.route('/anomalies', methods=['GET'])
+@session_or_jwt_required
+def get_anomalies():
+    """Get attendance anomalies"""
+    try:
+        anomalies = detect_anomalies()
+        
+        formatted_anomalies = []
+        for a in anomalies:
+            if a['type'] == 'low_attendance':
+                message = f"Low attendance detected ({a['rate']}%)"
+            else:
+                message = "Anomaly detected"
+                
+            formatted_anomalies.append({
+                'type': a['type'],
+                'class_id': a['class_id'],
+                'message': message,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        return jsonify(formatted_anomalies)
+    except Exception as e:
+        logger.error(f"Anomalies Error: {e}")
         return jsonify({'error': str(e)}), 500

@@ -51,6 +51,7 @@ def create_app():
     from .attendance import attendance_bp
     from .analytics import analytics_bp
     from .admin import admin_bp
+    from .parent import parent_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(users_bp, url_prefix='/api/users')
@@ -58,6 +59,7 @@ def create_app():
     app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(parent_bp, url_prefix='/api/parent')
 
     # Health check endpoint
     @app.route('/api/health')

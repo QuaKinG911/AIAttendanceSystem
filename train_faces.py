@@ -44,6 +44,14 @@ def train_faces(incremental=True):
         matcher.load_known_faces(db_path)
         print(f"Loaded existing database with {len(matcher.known_face_encodings)} faces")
 
+    # Build set of processed images
+    processed_images = set()
+    for meta in matcher.known_face_metadata:
+        if meta and 'source_image' in meta:
+            processed_images.add(meta['source_image'])
+    
+    print(f"Found {len(processed_images)} already processed images")
+
     faces_dir = 'data/faces'
     if not os.path.exists(faces_dir):
         print(f"Error: Faces directory '{faces_dir}' not found.")
@@ -93,6 +101,11 @@ def train_faces(incremental=True):
         # Process each photo
         for img_path in image_files:
             try:
+                # Check if already processed
+                if img_path in processed_images:
+                    print(f"  Skipping {os.path.basename(img_path)} (already processed)")
+                    continue
+
                 # Load image
                 image = cv2.imread(img_path)
                 if image is None:
@@ -106,7 +119,7 @@ def train_faces(incremental=True):
 
                 # Add each augmented version to matcher
                 for aug_img in augmented_images:
-                    success = matcher.add_known_face(aug_img, user_id, username)
+                    success = matcher.add_known_face(aug_img, user_id, username, metadata={'source_image': img_path})
                     if success:
                         count += 1
                     else:

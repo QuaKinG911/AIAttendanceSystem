@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify, session, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.models import User, UserRole, Enrollment, Class, Course
+from src.models import User, UserRole, Enrollment, Class, Course, SessionStatus
 from datetime import datetime
 from functools import wraps
 
@@ -109,6 +109,92 @@ def get_classes():
             'courses': [], # Empty list to prevent frontend errors
             'created_at': c.created_at.isoformat() if c.created_at else None
         } for c in classes])
+
+@classes_bp.route('/<int:class_id>/students', methods=['GET'])
+@classes_bp.route('/teacher/classes/<int:class_id>/students', methods=['GET'])
+@session_or_jwt_required
+def get_class_students_attendance(class_id):
+    """Get students in a class with their recent attendance"""
+    user = g.user
+    
+    # Verify teacher access
+    if user.role.value == 'teacher':
+        # Check if teacher teaches any course in this class
+        # Or if they are assigned to the class in some way
+        # For now, we'll allow if they teach ANY course in this class
+        teaches_class = Course.query.filter_by(teacher_id=user.id, class_id=class_id).first()
+        if not teaches_class:
+            return jsonify({'error': 'Unauthorized access to this class'}), 403
+            
+    elif user.role.value != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        # Get enrolled students
+        enrollments = Enrollment.query.filter_by(class_id=class_id).all()
+        student_ids = [e.student_id for e in enrollments]
+        
+        students = User.query.filter(User.id.in_(student_ids)).all()
+        
+        # Get recent sessions for this class (last 5)
+        from src.models import AttendanceSession, AttendanceRecord
+        
+        recent_sessions = AttendanceSession.query.filter_by(class_id=class_id)\
+            .order_by(AttendanceSession.start_time.desc())\
+            .limit(5).all()
+            
+        # Format sessions
+        sessions_data = [{
+            'id': s.id,
+            'date': s.start_time.isoformat(),
+            'status': s.status.value
+        } for s in recent_sessions]
+        
+        # Get attendance records for these sessions
+        session_ids = [s.id for s in recent_sessions]
+        records = AttendanceRecord.query.filter(
+            AttendanceRecord.session_id.in_(session_ids),
+            AttendanceRecord.student_id.in_(student_ids)
+        ).all()
+        
+        # Build attendance map: student_id -> session_id -> status
+        attendance_map = {}
+        for r in records:
+            if r.student_id not in attendance_map:
+                attendance_map[r.student_id] = {}
+            attendance_map[r.student_id][r.session_id] = r.status.value
+            
+        # Build response
+        students_data = []
+        for student in students:
+            student_attendance = {}
+            
+            # Populate attendance for each session
+            for session in recent_sessions:
+                status = None
+                if student.id in attendance_map and session.id in attendance_map[student.id]:
+                    status = attendance_map[student.id][session.id]
+                elif session.status == SessionStatus.COMPLETED:
+                    # If session is completed and no record, mark as absent
+                    status = 'absent'
+                
+                if status:
+                    student_attendance[session.id] = status
+                
+            students_data.append({
+                'id': student.id,
+                'name': student.full_name or student.username,
+                'grade': student.start_year,
+                'attendance': student_attendance
+            })
+            
+        return jsonify({
+            'sessions': sessions_data,
+            'students': students_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @classes_bp.route('/', methods=['POST'])
 @session_or_jwt_required

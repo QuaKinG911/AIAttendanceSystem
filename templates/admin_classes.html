@@ -54,10 +54,14 @@
                     <table class="table table-striped" id="classesTable">
                         <thead>
                             <tr>
-                                <th>Class Name</th>
-                                <th>Students</th>
-                                <th>Courses</th>
-                                <th>Actions</th>
+                                <th style="width: 25%;">Class Name</th>
+                                <th style="width: 15%;">Students</th>
+                                <th style="width: 15%;">Courses</th>
+                                <th style="width: 12%;">Schedule</th>
+                                <th style="width: 12%;">Students</th>
+                                <th style="width: 12%;">Courses</th>
+                                <th style="width: 8%;">Edit</th>
+                                <th style="width: 8%;">Delete</th>
                             </tr>
                         </thead>
                         <tbody id="classesTableBody">
@@ -409,19 +413,27 @@
             <td>${c.name}</td>
             <td>${c.student_count}</td>
             <td>${uniqueCourses}</td>
-            <td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-info" onclick="openScheduleManager(${c.id})" title="View Schedule">
                     <i class="fas fa-calendar-alt"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-primary" onclick="showManageStudentsModal(${c.id})" title="Manage Students">
                     <i class="fas fa-users"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-info" onclick="showAssignCoursesModal(${c.id})" title="Assign Courses">
                     <i class="fas fa-book"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary" onclick="editClass(${c.id})" title="Edit Class">
                     <i class="fas fa-edit"></i>
                 </button>
+            </td>
+            <td class="text-center">
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${c.id})" title="Delete Class">
                     <i class="fas fa-trash"></i>
                 </button>

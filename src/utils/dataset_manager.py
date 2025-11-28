@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 
 def ensure_dataset_dirs() -> None:
     os.makedirs(DATASET_DIR, exist_ok=True)
+    try:
+        os.chmod(DATASET_DIR, 0o777)
+    except Exception:
+        pass
+        
     # Migrate from old layout if present: data/students -> data/faces
     old_dir = os.path.join(PROJECT_ROOT, 'data', 'students')
     if os.path.isdir(old_dir):
@@ -32,6 +37,15 @@ def ensure_dataset_dirs() -> None:
     if not os.path.exists(STUDENTS_JSON):
         with open(STUDENTS_JSON, 'w') as f:
             json.dump({}, f, indent=2)
+        try:
+            os.chmod(STUDENTS_JSON, 0o666)
+        except Exception:
+            pass
+    elif os.path.exists(STUDENTS_JSON):
+        try:
+            os.chmod(STUDENTS_JSON, 0o666)
+        except Exception:
+            pass
 
 
 def load_students() -> Dict[str, Dict[str, str]]:
@@ -77,6 +91,21 @@ def add_student(student_id: str, name: str, image_bytes: bytes, image_ext: str =
         return False, f'Failed to save image: {e}'
 
     save_students(students)
+    
+    # Trigger training to update encodings
+    try:
+        # We import here to avoid circular imports if train_faces imports this module
+        import sys
+        if PROJECT_ROOT not in sys.path:
+            sys.path.append(PROJECT_ROOT)
+        
+        # Use a subprocess to run training to avoid any import/context issues
+        import subprocess
+        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, 'train_faces.py')])
+        
+    except Exception as e:
+        logger.warning(f"Failed to trigger training: {e}")
+        
     return True, img_path
 
 
@@ -148,3 +177,25 @@ def save_student_photo(student_id: str, image_bytes: bytes, image_ext: str = '.j
     except Exception as e:
         return False, f'Failed to save image: {e}'
 
+
+def rename_student_directory(old_id: str, new_id: str) -> bool:
+    """Rename a student's directory when their username changes."""
+    ensure_dataset_dirs()
+    old_dir = get_student_dir(old_id)
+    new_dir = get_student_dir(new_id)
+
+    if os.path.exists(old_dir):
+        try:
+            os.rename(old_dir, new_dir)
+            
+            # Also rename the primary image if it exists
+            old_img = os.path.join(new_dir, f'{old_id}.jpg')
+            new_img = os.path.join(new_dir, f'{new_id}.jpg')
+            if os.path.exists(old_img):
+                os.rename(old_img, new_img)
+                
+            return True
+        except Exception as e:
+            logger.error(f"Failed to rename student directory: {e}")
+            return False
+    return True  # No directory to rename is considered success

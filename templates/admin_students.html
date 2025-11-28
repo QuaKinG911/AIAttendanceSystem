@@ -75,12 +75,12 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 80px;">Photo</th>
-                                        <th>Full Name</th>
-                                        <th>Email</th>
-                                        <th>Gender</th>
-                                        <th>Major</th>
-                                        <th>Grade</th>
-                                        <th>Birthday</th>
+                                        <th style="width: 15%;">Full Name</th>
+                                        <th style="width: 20%;">Email</th>
+                                        <th style="width: 8%;">Gender</th>
+                                        <th style="width: 15%;">Major</th>
+                                        <th style="width: 8%;">Grade</th>
+                                        <th style="width: 12%;">Birthday</th>
                                         <th style="width: 60px;">Enroll</th>
                                         <th style="width: 60px;">Edit</th>
                                         <th style="width: 60px;">Delete</th>
@@ -103,11 +103,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5><i class="fas fa-chart-bar"></i> Student Attendance Overview</h5>
                         <div>
-                            <button class="btn btn-info" onclick="analyzeAttendance()">
-                                <i class="fas fa-chart-bar"></i> Analyze Attendance
-                            </button>
-                            <button class="btn btn-warning ms-2" onclick="exportAttendance()">
-                                <i class="fas fa-download"></i> Export Report
+
                             </button>
                         </div>
                     </div>
@@ -440,6 +436,12 @@
     // Load students on page load
     document.addEventListener('DOMContentLoaded', function () {
         loadStudents();
+
+        // Auto-load attendance analysis when tab is shown
+        var attendanceTab = document.getElementById('attendance-tab');
+        attendanceTab.addEventListener('shown.bs.tab', function (event) {
+            analyzeAttendance();
+        });
     });
 
     async function loadStudents() {
@@ -775,28 +777,6 @@
         }
 
         document.getElementById('attendanceAnalysis').style.display = 'block';
-    }
-
-    async function exportAttendance() {
-        try {
-            const response = await fetch('/api/admin/attendance/export', { credentials: 'include' });
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'attendance_report.xlsx';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            } else {
-                alert('Error exporting attendance report');
-            }
-        } catch (error) {
-            console.error('Error exporting attendance:', error);
-            alert('Error exporting attendance report');
-        }
     }
 
     // Video Enrollment Variables
